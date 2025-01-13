@@ -1,5 +1,11 @@
 # Quiz App
 
+![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
+![Made with Go](https://img.shields.io/badge/Made%20with-Go-00ADD8?style=for-the-badge&logo=go)
+![Swagger](https://img.shields.io/badge/Swagger-API%20Docs-green?style=for-the-badge&logo=swagger)
+![Gorilla Toolkit](https://img.shields.io/badge/Gorilla-Toolkit-blue?style=for-the-badge&logo=go)
+![Cobra CLI](https://img.shields.io/badge/Cobra-CLI-purple?style=for-the-badge&logo=go)
+
 A Go-based quiz application that supports user registration, login, and quiz functionalities. This app is built with the Gorilla web toolkit and includes Swagger documentation for easy API interaction.
 
 ## Features
@@ -37,10 +43,9 @@ Swagger documentation is available at: http://localhost:8080/swagger/index.html
 - View results at /quiz/results.
 
 ## License
-This project is licensed under the MIT License. See the LICENSE file for details.
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
 
 ## Gopher  🐹
-![Made with Go](https://img.shields.io/badge/Made%20with-Go-00ADD8?style=for-the-badge&logo=go)
 "A fun way to learn Go and improve your coding skills!"
 
 ---
