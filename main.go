@@ -11,7 +11,9 @@ import (
 	"os"
 	"strconv"
 
+	_ "github.com/Dzsodie/quiz_app/docs" // Import generated Swagger docs
 	"github.com/gorilla/mux"
+	httpSwagger "github.com/swaggo/http-swagger"
 )
 
 type Question struct {
@@ -57,11 +59,23 @@ func readCSV(filename string) ([]Question, error) {
 	return questions, nil
 }
 
+// @Summary Get all questions
+// @Description Get the list of all questions
+// @Tags questions
+// @Accept  json
+// @Produce  json
+// @Success 200 {array} Question
+// @Router /questions [get]
 func getQuestions(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(questions)
 }
 
+// @title Questions API
+// @version 1.0
+// @description This is a sample server for managing questions.
+// @host localhost:8080
+// @BasePath /
 func main() {
 	var err error
 	questions, err = readCSV("questions.csv")
@@ -71,7 +85,12 @@ func main() {
 	}
 
 	r := mux.NewRouter()
+
+	// API routes
 	r.HandleFunc("/questions", getQuestions).Methods("GET")
+
+	// Swagger route
+	r.PathPrefix("/swagger/").Handler(httpSwagger.WrapHandler)
 
 	fmt.Println("Server is running on port 8080...")
 	if err := http.ListenAndServe(":8080", r); err != nil {
