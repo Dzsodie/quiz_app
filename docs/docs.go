@@ -44,7 +44,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/main.User"
+                            "$ref": "#/definitions/models.User"
                         }
                     }
                 ],
@@ -95,8 +95,28 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/main.Question"
+                                "$ref": "#/definitions/models.Question"
                             }
+                        }
+                    }
+                }
+            }
+        },
+        "/quiz/next": {
+            "get": {
+                "description": "Retrieve the next question for the quiz",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Quiz"
+                ],
+                "summary": "Get the next question",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.Question"
                         }
                     }
                 }
@@ -145,6 +165,29 @@ const docTemplate = `{
                 }
             }
         },
+        "/quiz/stats": {
+            "get": {
+                "description": "Retrieve user performance statistics",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Stats"
+                ],
+                "summary": "Get user statistics",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/quiz/submit": {
             "post": {
                 "description": "Submit an answer to a question",
@@ -165,7 +208,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/main.AnswerPayload"
+                            "$ref": "#/definitions/models.AnswerPayload"
                         }
                     }
                 ],
@@ -211,7 +254,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/main.User"
+                            "$ref": "#/definitions/models.User"
                         }
                     }
                 ],
@@ -248,7 +291,7 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "main.AnswerPayload": {
+        "models.AnswerPayload": {
             "type": "object",
             "properties": {
                 "answer": {
@@ -259,7 +302,7 @@ const docTemplate = `{
                 }
             }
         },
-        "main.Question": {
+        "models.Question": {
             "type": "object",
             "properties": {
                 "answer": {
@@ -276,7 +319,7 @@ const docTemplate = `{
                 }
             }
         },
-        "main.User": {
+        "models.User": {
             "type": "object",
             "properties": {
                 "password": {
