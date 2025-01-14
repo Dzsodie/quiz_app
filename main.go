@@ -9,8 +9,10 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"sort"
 	"strconv"
 	"sync"
+	"time"
 
 	_ "github.com/Dzsodie/quiz_app/docs"
 	"github.com/gorilla/mux"
@@ -39,6 +41,8 @@ var (
 	users        = make(map[string]User)                          // Registered users
 	sessionStore = sessions.NewCookieStore([]byte("quiz-secret")) // Session store
 	userScores   = make(map[string]int)                           // User scores
+	quizTimers   = make(map[string]*time.Timer)                   // Timers for each quiz
+	userProgress = make(map[string]int)                           // Tracks progress per user
 	mu           sync.Mutex                                       // Mutex for concurrent safety
 )
 
@@ -175,9 +179,65 @@ func startQuiz(w http.ResponseWriter, r *http.Request) {
 
 	mu.Lock()
 	userScores[username] = 0
+	userProgress[username] = 0
+
+	if quizTimers[username] != nil {
+		quizTimers[username].Stop()
+	}
+
+	quizTimers[username] = time.AfterFunc(10*time.Minute, func() {
+		mu.Lock()
+		delete(userProgress, username)
+		mu.Unlock()
+	})
 	mu.Unlock()
 
-	json.NewEncoder(w).Encode(map[string]string{"message": "Quiz started"})
+	json.NewEncoder(w).Encode(map[string]string{"message": "Quiz started", "next_endpoint": "/quiz/next"})
+}
+
+func nextQuestionHandler(w http.ResponseWriter, r *http.Request) {
+	session, _ := sessionStore.Get(r, "quiz-session")
+	username, _ := session.Values["username"].(string)
+
+	mu.Lock()
+	progress := userProgress[username]
+	if progress >= len(questions) {
+		mu.Unlock()
+		json.NewEncoder(w).Encode(map[string]string{"message": "Quiz complete", "results_endpoint": "/quiz/results"})
+		return
+	}
+	question := questions[progress]
+	userProgress[username]++
+	mu.Unlock()
+
+	json.NewEncoder(w).Encode(question)
+}
+
+func statsHandler(w http.ResponseWriter, r *http.Request) {
+	session, _ := sessionStore.Get(r, "quiz-session")
+	username, _ := session.Values["username"].(string)
+
+	mu.Lock()
+	userScore := userScores[username]
+	allScores := make([]int, 0, len(userScores))
+	for _, score := range userScores {
+		allScores = append(allScores, score)
+	}
+	mu.Unlock()
+
+	sort.Ints(allScores)
+	betterScores := 0
+	for _, score := range allScores {
+		if userScore > score {
+			betterScores++
+		}
+	}
+
+	totalUsers := len(allScores)
+	percentage := (float64(betterScores) / float64(totalUsers)) * 100
+	json.NewEncoder(w).Encode(map[string]string{
+		"message": fmt.Sprintf("Your score is %d and that is %.2f%% better than other users' scores.", userScore, percentage),
+	})
 }
 
 // Update the Swagger comment
@@ -267,8 +327,10 @@ func main() {
 	api := r.PathPrefix("/quiz").Subrouter()
 	api.Use(authMiddleware)
 	api.HandleFunc("/start", startQuiz).Methods("POST")
+	api.HandleFunc("/next", nextQuestionHandler).Methods("GET")
 	api.HandleFunc("/submit", submitAnswer).Methods("POST")
 	api.HandleFunc("/results", getResults).Methods("GET")
+	api.HandleFunc("/stats", statsHandler).Methods("GET")
 
 	// Swagger routes
 	r.PathPrefix("/swagger/").Handler(httpSwagger.WrapHandler)

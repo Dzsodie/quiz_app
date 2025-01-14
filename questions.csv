@@ -1,7 +1,11 @@
 0,1,2,3,4
-What is the capital of France?,Paris,Berlin,Madrid,1
+What is the capital of France?,Marseille,Strassbourg,Paris,3
 Which programming language is known for concurrency?,Go,Java,C++,1
-"Who wrote ""1984""?",Aldous Huxley,George Orwell,Ray Bradbury,2
+Who wrote 1984?,Aldous Huxley,George Orwell,Ray Bradbury,2
 Which planet is known as the Red Planet?,Earth,Mars,Jupiter,2
 What is the largest ocean on Earth?,Atlantic Ocean,Indian Ocean,Pacific Ocean,3
-Who wrote 'Romeo and Juliet'?,Charles Dickens,William Shakespeare,Mark Twain,2
+Who painted the Mona Lisa?,Vincent van Gogh,Leonardo da Vinci,Pablo Picasso,2
+What is the First Law of Robotics in Asimov novels?,A robot must obey a human,A robot must not harm a human,A robot must not disobey orders,2
+Which planet is Princess Leia from?,Tatooine,Naboo,Alderaan,3
+What is the name of the Wookiee in Star Wars?,Chewbacca,Jabba,Boba Fett,1
+What timeline does Skeleton Crew take place in relative to the Star Wars saga?,During the Clone Wars,Post-Return of the Jedi,Same as Andor,2
