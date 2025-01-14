@@ -30,17 +30,19 @@ func NewAuthHandler(authService services.IAuthService) *AuthHandler {
 // @Router /register [post]
 func (h *AuthHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 	var user models.User
-	if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
-		http.Error(w, "Invalid input", http.StatusBadRequest)
+	if err := json.NewDecoder(r.Body).Decode(&user); err != nil || user.Username == "" || user.Password == "" {
+		http.Error(w, `{"message":"Invalid input"}`, http.StatusBadRequest)
 		return
 	}
 
 	err := h.AuthService.RegisterUser(user.Username, user.Password)
 	if err != nil {
 		if err.Error() == "user already exists" {
-			http.Error(w, err.Error(), http.StatusConflict)
+			w.WriteHeader(http.StatusConflict)
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(map[string]string{"message": "user already exists"})
 		} else {
-			http.Error(w, "Internal server error", http.StatusInternalServerError)
+			http.Error(w, `{"message":"Internal server error"}`, http.StatusInternalServerError)
 		}
 		return
 	}
@@ -61,17 +63,17 @@ func (h *AuthHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 // @Router /login [post]
 func (h *AuthHandler) LoginUser(w http.ResponseWriter, r *http.Request) {
 	var user models.User
-	if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
-		http.Error(w, "Invalid input", http.StatusBadRequest)
+	if err := json.NewDecoder(r.Body).Decode(&user); err != nil || user.Username == "" || user.Password == "" {
+		http.Error(w, `{"message":"Invalid input"}`, http.StatusBadRequest)
 		return
 	}
 
 	err := h.AuthService.AuthenticateUser(user.Username, user.Password)
 	if err != nil {
 		if err.Error() == "invalid username or password" {
-			http.Error(w, err.Error(), http.StatusUnauthorized)
+			http.Error(w, `{"message":"invalid username or password"}`, http.StatusUnauthorized)
 		} else {
-			http.Error(w, "Internal server error", http.StatusInternalServerError)
+			http.Error(w, `{"message":"Internal server error"}`, http.StatusInternalServerError)
 		}
 		return
 	}
@@ -80,5 +82,6 @@ func (h *AuthHandler) LoginUser(w http.ResponseWriter, r *http.Request) {
 	session.Values["username"] = user.Username
 	session.Save(r, w)
 
+	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(map[string]string{"message": "Login successful"})
 }

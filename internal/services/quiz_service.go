@@ -70,7 +70,6 @@ func (s *QuizService) GetNextQuestion(username string) (*models.Question, error)
 	return &question, nil
 }
 
-// SubmitAnswer evaluates a user's answer and updates the score.
 func (s *QuizService) SubmitAnswer(username string, questionIndex, answer int) (bool, error) {
 	quizMu.Lock()
 	defer quizMu.Unlock()
@@ -100,5 +99,4 @@ func (s *QuizService) GetResults(username string) (int, error) {
 	return score, nil
 }
 
-// Ensure QuizService implements IQuizService.
 var _ IQuizService = &QuizService{}

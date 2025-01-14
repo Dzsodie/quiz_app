@@ -66,7 +66,7 @@ func TestQuizHandler_GetQuestions(t *testing.T) {
 	quizHandler.GetQuestions(rr, req)
 
 	assert.Equal(t, http.StatusOK, rr.Code)
-	assert.JSONEq(t, `[{"Question":"What is 2+2?","Options":["3","4","5"],"Answer":1}]`, rr.Body.String())
+	assert.JSONEq(t, `[{"question":"What is 2+2?","options":["3","4","5"],"answer":1}]`, rr.Body.String())
 	mockService.AssertExpectations(t)
 }
 
@@ -111,7 +111,7 @@ func TestQuizHandler_NextQuestion(t *testing.T) {
 	quizHandler.NextQuestion(rr, req)
 
 	assert.Equal(t, http.StatusOK, rr.Code)
-	assert.JSONEq(t, `{"Question":"What is 2+2?","Options":["3","4","5"],"Answer":1}`, rr.Body.String())
+	assert.JSONEq(t, `{"question":"What is 2+2?","options":["3","4","5"],"answer":1}`, rr.Body.String())
 	mockService.AssertExpectations(t)
 }
 
@@ -129,7 +129,7 @@ func TestQuizHandler_SubmitAnswer(t *testing.T) {
 	session.Values["username"] = "testuser"
 	session.Save(req, rr)
 
-	mockService.On("SubmitAnswer", "testuser", 1, 2).Return(true, nil)
+	mockService.On("SubmitAnswer", "testuser", 0, 2).Return(true, nil)
 
 	quizHandler.SubmitAnswer(rr, req)
 

@@ -13,7 +13,6 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-// MockAuthService is a mock implementation of the IAuthService interface.
 type MockAuthService struct {
 	mock.Mock
 }
@@ -29,13 +28,9 @@ func (m *MockAuthService) AuthenticateUser(username, password string) error {
 }
 
 func TestRegisterUserHandler(t *testing.T) {
-	// Create the mock service
 	mockService := new(MockAuthService)
-
-	// Create the AuthHandler with the mock service
 	authHandler := NewAuthHandler(mockService)
 
-	// Define test cases for RegisterUser
 	tests := []struct {
 		name           string
 		input          models.User
@@ -55,52 +50,43 @@ func TestRegisterUserHandler(t *testing.T) {
 			input:          models.User{},
 			mockReturnErr:  nil,
 			expectedStatus: http.StatusBadRequest,
-			expectedBody:   "Invalid input\n",
+			expectedBody:   `{"message":"Invalid input"}`,
 		},
 		{
 			name:           "User already exists",
 			input:          models.User{Username: "testuser", Password: "password"},
 			mockReturnErr:  errors.New("user already exists"),
 			expectedStatus: http.StatusConflict,
-			expectedBody:   "user already exists\n",
+			expectedBody:   `{"message":"user already exists"}`,
 		},
 	}
 
-	// Run each test case for RegisterUser
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Set up the mock's expected behavior
-			mockService.On("RegisterUser", tt.input.Username, tt.input.Password).Return(tt.mockReturnErr)
+			if tt.input.Username != "" && tt.input.Password != "" {
+				mockService.On("RegisterUser", tt.input.Username, tt.input.Password).Return(tt.mockReturnErr).Once()
+			}
 
-			// Create a new request
 			body, _ := json.Marshal(tt.input)
 			req, err := http.NewRequest(http.MethodPost, "/register", bytes.NewBuffer(body))
 			assert.NoError(t, err)
 
-			// Create a response recorder
 			rr := httptest.NewRecorder()
-
-			// Call the handler
 			authHandler.RegisterUser(rr, req)
 
-			// Assertions
 			assert.Equal(t, tt.expectedStatus, rr.Code)
 			assert.JSONEq(t, tt.expectedBody, rr.Body.String())
-
-			// Assert that the mock expectations were met
 			mockService.AssertExpectations(t)
 		})
 	}
 }
 
 func TestLoginUserHandler(t *testing.T) {
-	// Create the mock service
 	mockService := new(MockAuthService)
-
-	// Create the AuthHandler with the mock service
 	authHandler := NewAuthHandler(mockService)
 
-	// Define test cases for LoginUser
+	SessionStore = createTestSessionStore()
+
 	tests := []struct {
 		name           string
 		input          models.User
@@ -120,39 +106,32 @@ func TestLoginUserHandler(t *testing.T) {
 			input:          models.User{},
 			mockReturnErr:  nil,
 			expectedStatus: http.StatusBadRequest,
-			expectedBody:   "Invalid input\n",
+			expectedBody:   `{"message":"Invalid input"}`,
 		},
 		{
 			name:           "Invalid credentials",
 			input:          models.User{Username: "testuser", Password: "wrongpassword"},
 			mockReturnErr:  errors.New("invalid username or password"),
 			expectedStatus: http.StatusUnauthorized,
-			expectedBody:   "invalid username or password\n",
+			expectedBody:   `{"message":"invalid username or password"}`,
 		},
 	}
 
-	// Run each test case for LoginUser
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Set up the mock's expected behavior
-			mockService.On("AuthenticateUser", tt.input.Username, tt.input.Password).Return(tt.mockReturnErr)
+			if tt.input.Username != "" && tt.input.Password != "" {
+				mockService.On("AuthenticateUser", tt.input.Username, tt.input.Password).Return(tt.mockReturnErr).Once()
+			}
 
-			// Create a new request
 			body, _ := json.Marshal(tt.input)
 			req, err := http.NewRequest(http.MethodPost, "/login", bytes.NewBuffer(body))
 			assert.NoError(t, err)
 
-			// Create a response recorder
 			rr := httptest.NewRecorder()
-
-			// Call the handler
 			authHandler.LoginUser(rr, req)
 
-			// Assertions
 			assert.Equal(t, tt.expectedStatus, rr.Code)
 			assert.JSONEq(t, tt.expectedBody, rr.Body.String())
-
-			// Assert that the mock expectations were met
 			mockService.AssertExpectations(t)
 		})
 	}

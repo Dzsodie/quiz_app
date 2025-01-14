@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 
 	"github.com/Dzsodie/quiz_app/internal/services"
@@ -30,7 +31,7 @@ func (h *StatsHandler) GetStats(w http.ResponseWriter, r *http.Request) {
 	// Delegate to the service layer
 	statsMessage, err := h.StatsService.GetStats(username)
 	if err != nil {
-		if err.Error() == "no stats available for user" {
+		if errors.Is(err, services.ErrNoStatsForUser) {
 			http.Error(w, `{"message":"No stats available for user"}`, http.StatusBadRequest)
 			return
 		}

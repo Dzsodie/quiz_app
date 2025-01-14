@@ -93,7 +93,7 @@ func (h *QuizHandler) SubmitAnswer(w http.ResponseWriter, r *http.Request) {
 	session, _ := SessionStore.Get(r, "quiz-session")
 	username, _ := session.Values["username"].(string)
 
-	correct, err := h.QuizService.SubmitAnswer(username, payload.QuestionIndex, payload.Answer) // Delegate to the service
+	correct, err := h.QuizService.SubmitAnswer(username, payload.QuestionIndex, payload.Answer)
 	if err != nil {
 		if err.Error() == "invalid question index" {
 			http.Error(w, err.Error(), http.StatusBadRequest)
