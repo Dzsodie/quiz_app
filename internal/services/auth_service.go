@@ -12,8 +12,10 @@ var (
 	authMu sync.Mutex
 )
 
+type AuthService struct{}
+
 // RegisterUser registers a new user.
-func RegisterUser(username, password string) error {
+func (s *AuthService) RegisterUser(username, password string) error {
 	authMu.Lock()
 	defer authMu.Unlock()
 
@@ -29,7 +31,7 @@ func RegisterUser(username, password string) error {
 }
 
 // AuthenticateUser validates the username and password.
-func AuthenticateUser(username, password string) error {
+func (s *AuthService) AuthenticateUser(username, password string) error {
 	authMu.Lock()
 	defer authMu.Unlock()
 
@@ -40,3 +42,5 @@ func AuthenticateUser(username, password string) error {
 
 	return nil
 }
+
+var _ IAuthService = &AuthService{}

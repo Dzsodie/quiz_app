@@ -6,10 +6,13 @@ import (
 	"sync"
 )
 
+// StatsService is an implementation of the IStatsService interface.
+type StatsService struct{}
+
 var statsMu sync.Mutex
 
 // GetStats calculates the user's performance relative to others.
-func GetStats(username string) (string, error) {
+func (s *StatsService) GetStats(username string) (string, error) {
 	statsMu.Lock()
 	defer statsMu.Unlock()
 
@@ -35,3 +38,6 @@ func GetStats(username string) (string, error) {
 	percentage := (float64(betterScores) / float64(totalUsers)) * 100
 	return fmt.Sprintf("Your score is %d and that is %.2f%% better than other users' scores.", userScore, percentage), nil
 }
+
+// Ensure StatsService implements IStatsService.
+var _ IStatsService = &StatsService{}

@@ -8,16 +8,26 @@ import (
 	"github.com/Dzsodie/quiz_app/internal/services"
 )
 
+// QuizHandler handles quiz-related HTTP requests.
+type QuizHandler struct {
+	QuizService services.IQuizService
+}
+
+// NewQuizHandler creates a new instance of QuizHandler with the provided IQuizService implementation.
+func NewQuizHandler(quizService services.IQuizService) *QuizHandler {
+	return &QuizHandler{QuizService: quizService}
+}
+
 // @Summary Get all questions
 // @Description Retrieve the list of questions
 // @Tags Quiz
 // @Produce json
 // @Success 200 {array} models.Question
 // @Router /questions [get]
-func GetQuestions(w http.ResponseWriter, r *http.Request) {
+func (h *QuizHandler) GetQuestions(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	allQuestions := services.GetQuestions()
+	allQuestions := h.QuizService.GetQuestions()
 	json.NewEncoder(w).Encode(allQuestions)
 }
 
@@ -26,11 +36,11 @@ func GetQuestions(w http.ResponseWriter, r *http.Request) {
 // @Tags Quiz
 // @Success 200 {object} map[string]string "message"
 // @Router /quiz/start [post]
-func StartQuiz(w http.ResponseWriter, r *http.Request) {
+func (h *QuizHandler) StartQuiz(w http.ResponseWriter, r *http.Request) {
 	session, _ := SessionStore.Get(r, "quiz-session")
 	username, _ := session.Values["username"].(string)
 
-	services.StartQuiz(username) // Delegate to the service
+	h.QuizService.StartQuiz(username) // Delegate to the service
 
 	json.NewEncoder(w).Encode(map[string]string{
 		"message":       "Quiz started",
@@ -44,11 +54,11 @@ func StartQuiz(w http.ResponseWriter, r *http.Request) {
 // @Produce json
 // @Success 200 {object} models.Question
 // @Router /quiz/next [get]
-func NextQuestion(w http.ResponseWriter, r *http.Request) {
+func (h *QuizHandler) NextQuestion(w http.ResponseWriter, r *http.Request) {
 	session, _ := SessionStore.Get(r, "quiz-session")
 	username, _ := session.Values["username"].(string)
 
-	question, err := services.GetNextQuestion(username) // Delegate to the service
+	question, err := h.QuizService.GetNextQuestion(username) // Delegate to the service
 	if err != nil {
 		if err.Error() == "no more questions" {
 			json.NewEncoder(w).Encode(map[string]string{
@@ -73,7 +83,7 @@ func NextQuestion(w http.ResponseWriter, r *http.Request) {
 // @Success 200 {object} map[string]string "message"
 // @Failure 400 {object} map[string]string "Invalid input"
 // @Router /quiz/submit [post]
-func SubmitAnswer(w http.ResponseWriter, r *http.Request) {
+func (h *QuizHandler) SubmitAnswer(w http.ResponseWriter, r *http.Request) {
 	var payload models.AnswerPayload
 	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
 		http.Error(w, "Invalid input", http.StatusBadRequest)
@@ -83,7 +93,7 @@ func SubmitAnswer(w http.ResponseWriter, r *http.Request) {
 	session, _ := SessionStore.Get(r, "quiz-session")
 	username, _ := session.Values["username"].(string)
 
-	correct, err := services.SubmitAnswer(username, payload.QuestionIndex, payload.Answer) // Delegate to the service
+	correct, err := h.QuizService.SubmitAnswer(username, payload.QuestionIndex, payload.Answer) // Delegate to the service
 	if err != nil {
 		if err.Error() == "invalid question index" {
 			http.Error(w, err.Error(), http.StatusBadRequest)
@@ -106,11 +116,11 @@ func SubmitAnswer(w http.ResponseWriter, r *http.Request) {
 // @Produce json
 // @Success 200 {object} map[string]int "score"
 // @Router /quiz/results [get]
-func GetResults(w http.ResponseWriter, r *http.Request) {
+func (h *QuizHandler) GetResults(w http.ResponseWriter, r *http.Request) {
 	session, _ := SessionStore.Get(r, "quiz-session")
 	username, _ := session.Values["username"].(string)
 
-	score, err := services.GetResults(username) // Delegate to the service
+	score, err := h.QuizService.GetResults(username) // Delegate to the service
 	if err != nil {
 		if err.Error() == "quiz not started" {
 			http.Error(w, err.Error(), http.StatusBadRequest)

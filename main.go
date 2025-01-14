@@ -34,12 +34,20 @@ import (
 // @host localhost:8080
 // @BasePath /
 func main() {
+	quizService := &services.QuizService{}
 	// Load questions from the CSV file into the service
 	questions, err := utils.ReadCSV("questions.csv")
 	if err != nil {
 		log.Fatalf("Error reading CSV: %v", err)
 	}
-	services.LoadQuestions(questions)
+	quizService.LoadQuestions(questions)
+	quizHandler := handlers.NewQuizHandler(quizService)
+
+	authService := &services.AuthService{}
+	authHandler := handlers.NewAuthHandler(authService)
+
+	statsService := &services.StatsService{}
+	statsHandler := handlers.NewStatsHandler(statsService)
 
 	// Initialize router
 	r := mux.NewRouter()
@@ -49,18 +57,18 @@ func main() {
 	middleware.SetSessionStore(handlers.SessionStore)
 
 	// Public routes
-	r.HandleFunc("/register", handlers.RegisterUser).Methods("POST")
-	r.HandleFunc("/login", handlers.LoginUser).Methods("POST")
-	r.HandleFunc("/questions", handlers.GetQuestions).Methods("GET")
+	r.HandleFunc("/register", authHandler.RegisterUser).Methods("POST")
+	r.HandleFunc("/login", authHandler.LoginUser).Methods("POST")
+	r.HandleFunc("/questions", quizHandler.GetQuestions).Methods("GET")
 
 	// Protected routes
 	api := r.PathPrefix("/quiz").Subrouter()
 	api.Use(middleware.AuthMiddleware)
-	api.HandleFunc("/start", handlers.StartQuiz).Methods("POST")
-	api.HandleFunc("/next", handlers.NextQuestion).Methods("GET")
-	api.HandleFunc("/submit", handlers.SubmitAnswer).Methods("POST")
-	api.HandleFunc("/results", handlers.GetResults).Methods("GET")
-	api.HandleFunc("/stats", handlers.GetStats).Methods("GET")
+	api.HandleFunc("/start", quizHandler.StartQuiz).Methods("POST")
+	api.HandleFunc("/next", quizHandler.NextQuestion).Methods("GET")
+	api.HandleFunc("/submit", quizHandler.SubmitAnswer).Methods("POST")
+	api.HandleFunc("/results", quizHandler.GetResults).Methods("GET")
+	api.HandleFunc("/stats", statsHandler.GetStats).Methods("GET")
 
 	// Swagger routes
 	r.PathPrefix("/swagger/").Handler(httpSwagger.WrapHandler)

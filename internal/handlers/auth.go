@@ -8,6 +8,16 @@ import (
 	"github.com/Dzsodie/quiz_app/internal/services"
 )
 
+// AuthHandler handles authentication-related HTTP requests.
+type AuthHandler struct {
+	AuthService services.IAuthService
+}
+
+// NewAuthHandler creates a new instance of AuthHandler with the provided IAuthService implementation.
+func NewAuthHandler(authService services.IAuthService) *AuthHandler {
+	return &AuthHandler{AuthService: authService}
+}
+
 // @Summary Register a new user
 // @Description Register a user with a username and password
 // @Tags User
@@ -18,14 +28,14 @@ import (
 // @Failure 400 {object} map[string]string "Invalid input"
 // @Failure 409 {object} map[string]string "User already exists"
 // @Router /register [post]
-func RegisterUser(w http.ResponseWriter, r *http.Request) {
+func (h *AuthHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 	var user models.User
 	if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
 		http.Error(w, "Invalid input", http.StatusBadRequest)
 		return
 	}
 
-	err := services.RegisterUser(user.Username, user.Password)
+	err := h.AuthService.RegisterUser(user.Username, user.Password)
 	if err != nil {
 		if err.Error() == "user already exists" {
 			http.Error(w, err.Error(), http.StatusConflict)
@@ -49,14 +59,14 @@ func RegisterUser(w http.ResponseWriter, r *http.Request) {
 // @Failure 400 {object} map[string]string "Invalid input"
 // @Failure 401 {object} map[string]string "Invalid credentials"
 // @Router /login [post]
-func LoginUser(w http.ResponseWriter, r *http.Request) {
+func (h *AuthHandler) LoginUser(w http.ResponseWriter, r *http.Request) {
 	var user models.User
 	if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
 		http.Error(w, "Invalid input", http.StatusBadRequest)
 		return
 	}
 
-	err := services.AuthenticateUser(user.Username, user.Password)
+	err := h.AuthService.AuthenticateUser(user.Username, user.Password)
 	if err != nil {
 		if err.Error() == "invalid username or password" {
 			http.Error(w, err.Error(), http.StatusUnauthorized)

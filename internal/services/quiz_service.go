@@ -8,6 +8,8 @@ import (
 	"github.com/Dzsodie/quiz_app/internal/models"
 )
 
+type QuizService struct{}
+
 var (
 	questions    []models.Question
 	userScores   = make(map[string]int)
@@ -16,22 +18,22 @@ var (
 	quizMu       sync.Mutex
 )
 
-// GetQuestions returns all loaded questions
-func GetQuestions() []models.Question {
+// GetQuestions returns all loaded questions.
+func (s *QuizService) GetQuestions() []models.Question {
 	quizMu.Lock()
 	defer quizMu.Unlock()
 	return questions
 }
 
 // LoadQuestions initializes the quiz questions.
-func LoadQuestions(qs []models.Question) {
+func (s *QuizService) LoadQuestions(qs []models.Question) {
 	quizMu.Lock()
 	defer quizMu.Unlock()
 	questions = qs
 }
 
 // StartQuiz initializes a user's quiz session.
-func StartQuiz(username string) {
+func (s *QuizService) StartQuiz(username string) {
 	quizMu.Lock()
 	defer quizMu.Unlock()
 
@@ -50,7 +52,7 @@ func StartQuiz(username string) {
 }
 
 // GetNextQuestion retrieves the next question for a user.
-func GetNextQuestion(username string) (*models.Question, error) {
+func (s *QuizService) GetNextQuestion(username string) (*models.Question, error) {
 	quizMu.Lock()
 	defer quizMu.Unlock()
 
@@ -69,7 +71,7 @@ func GetNextQuestion(username string) (*models.Question, error) {
 }
 
 // SubmitAnswer evaluates a user's answer and updates the score.
-func SubmitAnswer(username string, questionIndex, answer int) (bool, error) {
+func (s *QuizService) SubmitAnswer(username string, questionIndex, answer int) (bool, error) {
 	quizMu.Lock()
 	defer quizMu.Unlock()
 
@@ -86,7 +88,7 @@ func SubmitAnswer(username string, questionIndex, answer int) (bool, error) {
 }
 
 // GetResults retrieves the user's final score.
-func GetResults(username string) (int, error) {
+func (s *QuizService) GetResults(username string) (int, error) {
 	quizMu.Lock()
 	defer quizMu.Unlock()
 
@@ -97,3 +99,6 @@ func GetResults(username string) (int, error) {
 
 	return score, nil
 }
+
+// Ensure QuizService implements IQuizService.
+var _ IQuizService = &QuizService{}
