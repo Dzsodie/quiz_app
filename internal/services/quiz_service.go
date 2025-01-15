@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/Dzsodie/quiz_app/internal/models"
+	"github.com/Dzsodie/quiz_app/internal/utils"
 	"go.uber.org/zap"
 )
 
@@ -103,9 +104,9 @@ func (s *QuizService) SubmitAnswer(username string, questionIndex, answer int) (
 	quizMu.Lock()
 	defer quizMu.Unlock()
 
-	if questionIndex < 0 || questionIndex >= len(questions) {
-		s.Logger.Error("Invalid question index", zap.String("username", username), zap.Int("index", questionIndex))
-		return false, errors.New("invalid question index")
+	if err := utils.ValidateAnswerPayload(questionIndex, answer, questions); err != nil {
+		s.Logger.Error("Invalid answer payload", zap.String("username", username), zap.Error(err))
+		return false, err
 	}
 
 	if answer == questions[questionIndex].Answer {
@@ -113,6 +114,7 @@ func (s *QuizService) SubmitAnswer(username string, questionIndex, answer int) (
 		s.Logger.Info("Correct answer submitted", zap.String("username", username), zap.Int("score", userScores[username]))
 		return true, nil
 	}
+
 	s.Logger.Info("Incorrect answer submitted", zap.String("username", username), zap.Int("score", userScores[username]))
 	return false, nil
 }

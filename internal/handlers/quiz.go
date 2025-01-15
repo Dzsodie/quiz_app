@@ -6,6 +6,7 @@ import (
 
 	"github.com/Dzsodie/quiz_app/internal/models"
 	"github.com/Dzsodie/quiz_app/internal/services"
+	"github.com/Dzsodie/quiz_app/internal/utils"
 	"go.uber.org/zap"
 )
 
@@ -108,6 +109,19 @@ func (h *QuizHandler) SubmitAnswer(w http.ResponseWriter, r *http.Request) {
 
 	session, _ := SessionStore.Get(r, "quiz-session")
 	username, _ := session.Values["username"].(string)
+
+	allQuestions, err := h.QuizService.GetQuestions()
+	if err != nil {
+		h.Logger.Error("Internal server error during get questions", zap.Error(err))
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	if err := utils.ValidateAnswerPayload(payload.QuestionIndex, payload.Answer, allQuestions); err != nil {
+		h.Logger.Warn("Validation failed for answer payload", zap.Error(err))
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
 
 	correct, err := h.QuizService.SubmitAnswer(username, payload.QuestionIndex, payload.Answer)
 	if err != nil {
