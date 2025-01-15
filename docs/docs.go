@@ -12,7 +12,7 @@ const docTemplate = `{
         "termsOfService": "http://swagger.io/terms/",
         "contact": {
             "name": "Zsuzsa Makara",
-            "url": "http://www.zsuzsa-makara.com",
+            "url": "https://dzsodie.github.io/",
             "email": "dzsodie@gmail.com"
         },
         "license": {

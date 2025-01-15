@@ -25,7 +25,7 @@ import (
 // @termsOfService http://swagger.io/terms/
 
 // @contact.name Zsuzsa Makara
-// @contact.url http://www.zsuzsa-makara.com
+// @contact.url https://dzsodie.github.io/
 // @contact.email dzsodie@gmail.com
 
 // @license.name MIT
