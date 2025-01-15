@@ -9,10 +9,15 @@ import (
 
 // InitializeLogger sets up the global logger with environment-based configuration.
 func InitializeLogger(env string, logFilePath string) (*zap.Logger, error) {
+	// Ensure the directory for the log file exists
+	logDir := "logs"
+	if err := os.MkdirAll(logDir, 0755); err != nil {
+		return nil, err
+	}
+
+	// Set the log level based on the environment
 	var level zapcore.Level
 	var encoderConfig zapcore.EncoderConfig
-
-	// Configure settings based on the environment
 	if env == "production" {
 		level = zap.InfoLevel
 		encoderConfig = zap.NewProductionEncoderConfig()
@@ -20,7 +25,6 @@ func InitializeLogger(env string, logFilePath string) (*zap.Logger, error) {
 		level = zap.DebugLevel
 		encoderConfig = zap.NewDevelopmentEncoderConfig()
 	}
-
 	encoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder // Human-readable time format
 
 	// Create the file writer
@@ -37,7 +41,7 @@ func InitializeLogger(env string, logFilePath string) (*zap.Logger, error) {
 		level,                                 // Log level
 	)
 
-	// Add console output for development environment
+	// Add console output for development
 	if env != "production" {
 		consoleWriter := zapcore.Lock(os.Stdout)
 		core = zapcore.NewTee(

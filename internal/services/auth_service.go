@@ -9,8 +9,8 @@ import (
 )
 
 var (
-	users  = make(map[string]models.User)
 	authMu sync.Mutex
+	users  = make(map[string]models.User)
 )
 
 type AuthService struct {
@@ -23,6 +23,10 @@ func NewAuthService(logger *zap.Logger) *AuthService {
 
 // RegisterUser registers a new user.
 func (s *AuthService) RegisterUser(username, password string) error {
+	if s.Logger == nil {
+		panic("AuthService logger is not set")
+	}
+
 	authMu.Lock()
 	defer authMu.Unlock()
 
@@ -41,6 +45,10 @@ func (s *AuthService) RegisterUser(username, password string) error {
 
 // AuthenticateUser validates the username and password.
 func (s *AuthService) AuthenticateUser(username, password string) error {
+	if s.Logger == nil {
+		panic("AuthService logger is not set")
+	}
+
 	authMu.Lock()
 	defer authMu.Unlock()
 

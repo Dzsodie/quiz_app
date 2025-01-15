@@ -40,6 +40,11 @@ func (s *QuizService) GetQuestions() ([]models.Question, error) {
 
 // LoadQuestions initializes the quiz questions.
 func (s *QuizService) LoadQuestions(qs []models.Question) {
+	if s.Logger == nil {
+		panic("QuizService logger is not set")
+	}
+	s.Logger.Info("Loading questions into QuizService", zap.Int("question_count", len(questions)))
+
 	quizMu.Lock()
 	defer quizMu.Unlock()
 

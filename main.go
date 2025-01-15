@@ -1,6 +1,3 @@
-/*
-Copyright © 2025 Zsuzsa Makara <dzsodie@gmail.com>
-*/
 package main
 
 import (
@@ -35,14 +32,17 @@ import (
 // @host localhost:8080
 // @BasePath /
 func main() {
-	// Get environment and log file path
+	// Step 1: Get environment and log file path
 	env := os.Getenv("ENV") // "production" or "development"
+	if env == "" {
+		env = "development"
+	}
 	logFilePath := os.Getenv("LOG_FILE_PATH")
 	if logFilePath == "" {
 		logFilePath = "logs/app.log"
 	}
 
-	// Initialize logger
+	// Step 2: Initialize logger
 	logger, err := utils.InitializeLogger(env, logFilePath)
 	if err != nil {
 		log.Fatalf("Failed to initialize logger: %v", err)
@@ -50,25 +50,35 @@ func main() {
 	defer logger.Sync()
 	sugar := logger.Sugar()
 
-	quizService := &services.QuizService{}
-	// Load questions from the CSV file into the service
+	// Log the application start message
+	sugar.Infof("Application started in %s mode", env)
+
+	// Set the logger for utils
+	utils.SetLogger(logger)
+
+	// Step 3: Initialize services
+	quizService := &services.QuizService{Logger: logger}
+	authService := &services.AuthService{Logger: logger}
+	statsService := &services.StatsService{Logger: logger}
+
+	// Step 4: Load questions from the CSV file
+	sugar.Info("Loading questions from CSV...")
 	questions, err := utils.ReadCSV("questions.csv")
 	if err != nil {
-		sugar.Fatalf("Error reading CSV: %v", err)
+		sugar.Fatalf("Failed to load questions: %v", err)
 	}
+	sugar.Infof("Successfully loaded %d questions", len(questions))
+
+	// Step 4: Load questions
 	quizService.LoadQuestions(questions)
+
+	// Step 5: Initialize handlers
 	quizHandler := handlers.NewQuizHandler(quizService, sugar)
-
-	authService := &services.AuthService{}
 	authHandler := handlers.NewAuthHandler(authService, sugar)
-
-	statsService := &services.StatsService{}
 	statsHandler := handlers.NewStatsHandler(statsService, logger)
 
-	// Initialize router
+	// Step 6: Configure router and middleware
 	r := mux.NewRouter()
-
-	// Configure session store for middleware and handlers
 	handlers.SessionStore = sessions.NewCookieStore([]byte("quiz-secret"))
 	middleware.SetSessionStore(handlers.SessionStore)
 	middleware.SetLogger(logger)
@@ -95,7 +105,7 @@ func main() {
 	healthChecker := health.NewHealthCheck(sugar, handlers.SessionStore, inMemoryDB)
 	r.HandleFunc("/health", healthChecker.HealthCheckHandler).Methods("GET")
 
-	// Start server
+	// Step 7: Start the server
 	sugar.Info("Server is running on port 8080...")
 	sugar.Fatal(http.ListenAndServe(":8080", r))
 }
