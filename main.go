@@ -59,6 +59,7 @@ func main() {
 	// Configure session store for middleware and handlers
 	handlers.SessionStore = sessions.NewCookieStore([]byte("quiz-secret"))
 	middleware.SetSessionStore(handlers.SessionStore)
+	middleware.SetLogger(logger)
 
 	// Public routes
 	r.HandleFunc("/register", authHandler.RegisterUser).Methods("POST")

@@ -23,9 +23,9 @@ func TestReadCSV(t *testing.T) {
 				defer tmpFile.Close()
 
 				_, err = tmpFile.WriteString(`Question,Option1,Option2,Option3,Answer
-What is 2+2?,1,2,4,2
-What is 3+3?,5,6,7,1
-`)
+				What is 2+2?,1,2,4,2
+				What is 3+3?,5,6,7,1
+				`)
 				assert.NoError(t, err)
 				return tmpFile.Name()
 			},
@@ -51,8 +51,8 @@ What is 3+3?,5,6,7,1
 				defer tmpFile.Close()
 
 				_, err = tmpFile.WriteString(`Question,Option1,Option2,Option3,Answer
-What is 2+2?,1,2,4,invalid_answer
-`)
+				What is 2+2?,1,2,4,invalid_answer
+				`)
 				assert.NoError(t, err)
 				return tmpFile.Name()
 			},
