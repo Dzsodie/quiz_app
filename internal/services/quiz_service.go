@@ -6,9 +6,12 @@ import (
 	"time"
 
 	"github.com/Dzsodie/quiz_app/internal/models"
+	"go.uber.org/zap"
 )
 
-type QuizService struct{}
+type QuizService struct {
+	Logger *zap.Logger
+}
 
 var (
 	questions    []models.Question
@@ -18,22 +21,34 @@ var (
 	quizMu       sync.Mutex
 )
 
+func NewQuizService(logger *zap.Logger) *QuizService {
+	return &QuizService{Logger: logger}
+}
+
 // GetQuestions returns all loaded questions.
-func (s *QuizService) GetQuestions() []models.Question {
+func (s *QuizService) GetQuestions() ([]models.Question, error) {
 	quizMu.Lock()
 	defer quizMu.Unlock()
-	return questions
+
+	if questions == nil {
+		s.Logger.Warn("Attempted to get questions but none are available")
+		return nil, errors.New("no questions available")
+	}
+	s.Logger.Info("Questions retrieved successfully", zap.Int("count", len(questions)))
+	return questions, nil
 }
 
 // LoadQuestions initializes the quiz questions.
 func (s *QuizService) LoadQuestions(qs []models.Question) {
 	quizMu.Lock()
 	defer quizMu.Unlock()
+
 	questions = qs
+	s.Logger.Info("Questions loaded successfully", zap.Int("count", len(qs)))
 }
 
 // StartQuiz initializes a user's quiz session.
-func (s *QuizService) StartQuiz(username string) {
+func (s *QuizService) StartQuiz(username string) error {
 	quizMu.Lock()
 	defer quizMu.Unlock()
 
@@ -42,13 +57,19 @@ func (s *QuizService) StartQuiz(username string) {
 
 	if timer, exists := quizTimers[username]; exists {
 		timer.Stop()
+		s.Logger.Warn("Existing quiz session timer stopped", zap.String("username", username))
 	}
 
 	quizTimers[username] = time.AfterFunc(10*time.Minute, func() {
 		quizMu.Lock()
 		delete(userProgress, username)
+		delete(userScores, username)
+		delete(quizTimers, username)
 		quizMu.Unlock()
+		s.Logger.Info("Quiz session expired", zap.String("username", username))
 	})
+	s.Logger.Info("Quiz session started", zap.String("username", username))
+	return nil
 }
 
 // GetNextQuestion retrieves the next question for a user.
@@ -58,15 +79,18 @@ func (s *QuizService) GetNextQuestion(username string) (*models.Question, error)
 
 	progress, exists := userProgress[username]
 	if !exists {
+		s.Logger.Error("Quiz not started for user", zap.String("username", username))
 		return nil, errors.New("quiz not started")
 	}
 
 	if progress >= len(questions) {
+		s.Logger.Warn("No more questions available for user", zap.String("username", username))
 		return nil, errors.New("no more questions")
 	}
 
 	question := questions[progress]
 	userProgress[username]++
+	s.Logger.Info("Next question retrieved", zap.String("username", username), zap.Int("progress", userProgress[username]))
 	return &question, nil
 }
 
@@ -75,14 +99,16 @@ func (s *QuizService) SubmitAnswer(username string, questionIndex, answer int) (
 	defer quizMu.Unlock()
 
 	if questionIndex < 0 || questionIndex >= len(questions) {
+		s.Logger.Error("Invalid question index", zap.String("username", username), zap.Int("index", questionIndex))
 		return false, errors.New("invalid question index")
 	}
 
 	if answer == questions[questionIndex].Answer {
 		userScores[username]++
+		s.Logger.Info("Correct answer submitted", zap.String("username", username), zap.Int("score", userScores[username]))
 		return true, nil
 	}
-
+	s.Logger.Info("Incorrect answer submitted", zap.String("username", username), zap.Int("score", userScores[username]))
 	return false, nil
 }
 
@@ -93,9 +119,10 @@ func (s *QuizService) GetResults(username string) (int, error) {
 
 	score, exists := userScores[username]
 	if !exists {
+		s.Logger.Error("Quiz not started for user", zap.String("username", username))
 		return 0, errors.New("quiz not started")
 	}
-
+	s.Logger.Info("Final score retrieved", zap.String("username", username), zap.Int("score", score))
 	return score, nil
 }
 

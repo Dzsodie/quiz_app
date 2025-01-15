@@ -11,6 +11,7 @@ import (
 	"github.com/gorilla/sessions"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"go.uber.org/zap"
 )
 
 // MockQuizService is a mock implementation of the IQuizService interface.
@@ -18,17 +19,18 @@ type MockQuizService struct {
 	mock.Mock
 }
 
-func (m *MockQuizService) GetQuestions() []models.Question {
+func (m *MockQuizService) GetQuestions() ([]models.Question, error) {
 	args := m.Called()
-	return args.Get(0).([]models.Question)
+	return args.Get(0).([]models.Question), args.Error(1)
 }
 
 func (m *MockQuizService) LoadQuestions(qs []models.Question) {
 	m.Called(qs)
 }
 
-func (m *MockQuizService) StartQuiz(username string) {
-	m.Called(username)
+func (m *MockQuizService) StartQuiz(username string) error {
+	args := m.Called(username)
+	return args.Error(0)
 }
 
 func (m *MockQuizService) GetNextQuestion(username string) (*models.Question, error) {
@@ -51,7 +53,9 @@ func (m *MockQuizService) GetResults(username string) (int, error) {
 
 func TestQuizHandler_GetQuestions(t *testing.T) {
 	mockService := new(MockQuizService)
-	quizHandler := NewQuizHandler(mockService)
+	logger := zap.NewExample().Sugar()
+	defer logger.Sync()
+	quizHandler := NewQuizHandler(mockService, logger)
 
 	questions := []models.Question{
 		{Question: "What is 2+2?", Options: []string{"3", "4", "5"}, Answer: 1},
@@ -72,7 +76,9 @@ func TestQuizHandler_GetQuestions(t *testing.T) {
 
 func TestQuizHandler_StartQuiz(t *testing.T) {
 	mockService := new(MockQuizService)
-	quizHandler := NewQuizHandler(mockService)
+	logger := zap.NewExample().Sugar()
+	defer logger.Sync()
+	quizHandler := NewQuizHandler(mockService, logger)
 
 	SessionStore = createTestSessionStore() // Helper to create a session store
 	req, err := http.NewRequest(http.MethodPost, "/quiz/start", nil)
@@ -94,7 +100,9 @@ func TestQuizHandler_StartQuiz(t *testing.T) {
 
 func TestQuizHandler_NextQuestion(t *testing.T) {
 	mockService := new(MockQuizService)
-	quizHandler := NewQuizHandler(mockService)
+	logger := zap.NewExample().Sugar()
+	defer logger.Sync()
+	quizHandler := NewQuizHandler(mockService, logger)
 
 	SessionStore = createTestSessionStore()
 	req, err := http.NewRequest(http.MethodGet, "/quiz/next", nil)
@@ -117,7 +125,9 @@ func TestQuizHandler_NextQuestion(t *testing.T) {
 
 func TestQuizHandler_SubmitAnswer(t *testing.T) {
 	mockService := new(MockQuizService)
-	quizHandler := NewQuizHandler(mockService)
+	logger := zap.NewExample().Sugar()
+	defer logger.Sync()
+	quizHandler := NewQuizHandler(mockService, logger)
 
 	SessionStore = createTestSessionStore()
 	reqBody := `{"QuestionIndex":1,"Answer":2}`
@@ -140,7 +150,9 @@ func TestQuizHandler_SubmitAnswer(t *testing.T) {
 
 func TestQuizHandler_GetResults(t *testing.T) {
 	mockService := new(MockQuizService)
-	quizHandler := NewQuizHandler(mockService)
+	logger := zap.NewExample().Sugar()
+	defer logger.Sync()
+	quizHandler := NewQuizHandler(mockService, logger)
 
 	SessionStore = createTestSessionStore()
 	req, err := http.NewRequest(http.MethodGet, "/quiz/results", nil)

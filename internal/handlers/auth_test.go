@@ -11,6 +11,7 @@ import (
 	"github.com/Dzsodie/quiz_app/internal/models"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"go.uber.org/zap"
 )
 
 type MockAuthService struct {
@@ -29,7 +30,9 @@ func (m *MockAuthService) AuthenticateUser(username, password string) error {
 
 func TestRegisterUserHandler(t *testing.T) {
 	mockService := new(MockAuthService)
-	authHandler := NewAuthHandler(mockService)
+	logger := zap.NewExample().Sugar()
+	defer logger.Sync()
+	authHandler := NewAuthHandler(mockService, logger)
 
 	tests := []struct {
 		name           string
@@ -83,7 +86,9 @@ func TestRegisterUserHandler(t *testing.T) {
 
 func TestLoginUserHandler(t *testing.T) {
 	mockService := new(MockAuthService)
-	authHandler := NewAuthHandler(mockService)
+	logger := zap.NewExample().Sugar()
+	defer logger.Sync()
+	authHandler := NewAuthHandler(mockService, logger)
 
 	SessionStore = createTestSessionStore()
 

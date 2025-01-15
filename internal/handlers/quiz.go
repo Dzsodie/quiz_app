@@ -6,16 +6,18 @@ import (
 
 	"github.com/Dzsodie/quiz_app/internal/models"
 	"github.com/Dzsodie/quiz_app/internal/services"
+	"go.uber.org/zap"
 )
 
 // QuizHandler handles quiz-related HTTP requests.
 type QuizHandler struct {
 	QuizService services.IQuizService
+	Logger      *zap.SugaredLogger
 }
 
 // NewQuizHandler creates a new instance of QuizHandler with the provided IQuizService implementation.
-func NewQuizHandler(quizService services.IQuizService) *QuizHandler {
-	return &QuizHandler{QuizService: quizService}
+func NewQuizHandler(quizService services.IQuizService, logger *zap.SugaredLogger) *QuizHandler {
+	return &QuizHandler{QuizService: quizService, Logger: logger}
 }
 
 // @Summary Get all questions
@@ -26,8 +28,14 @@ func NewQuizHandler(quizService services.IQuizService) *QuizHandler {
 // @Router /questions [get]
 func (h *QuizHandler) GetQuestions(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
+	allQuestions, err := h.QuizService.GetQuestions()
+	if err != nil {
+		h.Logger.Error("Internal server error during get questions", zap.Error(err))
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
 
-	allQuestions := h.QuizService.GetQuestions()
+	h.Logger.Info("Questions retrieved")
 	json.NewEncoder(w).Encode(allQuestions)
 }
 
@@ -40,8 +48,13 @@ func (h *QuizHandler) StartQuiz(w http.ResponseWriter, r *http.Request) {
 	session, _ := SessionStore.Get(r, "quiz-session")
 	username, _ := session.Values["username"].(string)
 
-	h.QuizService.StartQuiz(username) // Delegate to the service
+	if err := h.QuizService.StartQuiz(username); err != nil {
+		h.Logger.Error("Internal server error during start quiz", zap.Error(err))
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
 
+	h.Logger.Info("Quiz started", zap.String("username", username))
 	json.NewEncoder(w).Encode(map[string]string{
 		"message":       "Quiz started",
 		"next_endpoint": "/quiz/next",
@@ -61,16 +74,18 @@ func (h *QuizHandler) NextQuestion(w http.ResponseWriter, r *http.Request) {
 	question, err := h.QuizService.GetNextQuestion(username) // Delegate to the service
 	if err != nil {
 		if err.Error() == "no more questions" {
+			h.Logger.Info("Quiz complete", zap.String("username", username))
 			json.NewEncoder(w).Encode(map[string]string{
 				"message":          "Quiz complete",
 				"results_endpoint": "/quiz/results",
 			})
 			return
 		}
+		h.Logger.Error("Internal server error during get next question", zap.Error(err))
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
-
+	h.Logger.Info("Next question retrieved", zap.String("username", username))
 	json.NewEncoder(w).Encode(question)
 }
 
@@ -86,6 +101,7 @@ func (h *QuizHandler) NextQuestion(w http.ResponseWriter, r *http.Request) {
 func (h *QuizHandler) SubmitAnswer(w http.ResponseWriter, r *http.Request) {
 	var payload models.AnswerPayload
 	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+		h.Logger.Warn("Invalid input for submit answer", zap.Error(err))
 		http.Error(w, "Invalid input", http.StatusBadRequest)
 		return
 	}
@@ -96,16 +112,20 @@ func (h *QuizHandler) SubmitAnswer(w http.ResponseWriter, r *http.Request) {
 	correct, err := h.QuizService.SubmitAnswer(username, payload.QuestionIndex, payload.Answer)
 	if err != nil {
 		if err.Error() == "invalid question index" {
+			h.Logger.Warn("Invalid question index", zap.Error(err))
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
+		h.Logger.Error("Internal server error during submit answer", zap.Error(err))
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
 
 	if correct {
+		h.Logger.Info("Correct answer submitted", zap.String("username", username), zap.Int("questionIndex", payload.QuestionIndex))
 		json.NewEncoder(w).Encode(map[string]string{"message": "Correct answer"})
 	} else {
+		h.Logger.Info("Wrong answer submitted", zap.String("username", username), zap.Int("questionIndex", payload.QuestionIndex))
 		json.NewEncoder(w).Encode(map[string]string{"message": "Wrong answer"})
 	}
 }
@@ -123,12 +143,14 @@ func (h *QuizHandler) GetResults(w http.ResponseWriter, r *http.Request) {
 	score, err := h.QuizService.GetResults(username) // Delegate to the service
 	if err != nil {
 		if err.Error() == "quiz not started" {
+			h.Logger.Warn("Quiz not started", zap.String("username", username))
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
+		h.Logger.Error("Internal server error during get results", zap.Error(err))
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
-
+	h.Logger.Info("Quiz results retrieved", zap.String("username", username), zap.Int("score", score))
 	json.NewEncoder(w).Encode(map[string]int{"score": score})
 }

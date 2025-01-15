@@ -5,13 +5,13 @@ import "github.com/Dzsodie/quiz_app/internal/models"
 // IQuizService defines the contract for quiz-related operations.
 type IQuizService interface {
 	// GetQuestions returns all loaded questions.
-	GetQuestions() []models.Question
+	GetQuestions() ([]models.Question, error)
 
 	// LoadQuestions initializes the quiz questions.
 	LoadQuestions(qs []models.Question)
 
 	// StartQuiz initializes a user's quiz session.
-	StartQuiz(username string)
+	StartQuiz(username string) error
 
 	// GetNextQuestion retrieves the next question for a user.
 	// Returns an error if the quiz is not started or no more questions are available.

@@ -45,13 +45,13 @@ func main() {
 		sugar.Fatalf("Error reading CSV: %v", err)
 	}
 	quizService.LoadQuestions(questions)
-	quizHandler := handlers.NewQuizHandler(quizService)
+	quizHandler := handlers.NewQuizHandler(quizService, sugar)
 
 	authService := &services.AuthService{}
-	authHandler := handlers.NewAuthHandler(authService)
+	authHandler := handlers.NewAuthHandler(authService, sugar)
 
 	statsService := &services.StatsService{}
-	statsHandler := handlers.NewStatsHandler(statsService)
+	statsHandler := handlers.NewStatsHandler(statsService, logger)
 
 	// Initialize router
 	r := mux.NewRouter()

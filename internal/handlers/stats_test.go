@@ -9,6 +9,7 @@ import (
 	"github.com/Dzsodie/quiz_app/internal/services"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"go.uber.org/zap"
 )
 
 // MockStatsService is a mock implementation of the IStatsService interface.
@@ -23,7 +24,9 @@ func (m *MockStatsService) GetStats(username string) (string, error) {
 
 func TestStatsHandler_GetStats(t *testing.T) {
 	mockService := new(MockStatsService)
-	statsHandler := NewStatsHandler(mockService)
+	logger, _ := zap.NewProduction()
+	defer logger.Sync()
+	statsHandler := NewStatsHandler(mockService, logger)
 
 	SessionStore = createTestSessionStore()
 

@@ -6,16 +6,18 @@ import (
 	"net/http"
 
 	"github.com/Dzsodie/quiz_app/internal/services"
+	"go.uber.org/zap"
 )
 
 // StatsHandler handles statistics-related HTTP requests.
 type StatsHandler struct {
 	StatsService services.IStatsService
+	Logger       *zap.SugaredLogger
 }
 
 // NewStatsHandler creates a new instance of StatsHandler with the provided IStatsService implementation.
-func NewStatsHandler(statsService services.IStatsService) *StatsHandler {
-	return &StatsHandler{StatsService: statsService}
+func NewStatsHandler(statsService services.IStatsService, logger *zap.Logger) *StatsHandler {
+	return &StatsHandler{StatsService: statsService, Logger: logger.Sugar()}
 }
 
 // @Summary Get user statistics
@@ -26,19 +28,28 @@ func NewStatsHandler(statsService services.IStatsService) *StatsHandler {
 // @Router /quiz/stats [get]
 func (h *StatsHandler) GetStats(w http.ResponseWriter, r *http.Request) {
 	session, _ := SessionStore.Get(r, "quiz-session")
-	username, _ := session.Values["username"].(string)
+	username, ok := session.Values["username"].(string)
 
-	// Delegate to the service layer
-	statsMessage, err := h.StatsService.GetStats(username)
-	if err != nil {
-		if errors.Is(err, services.ErrNoStatsForUser) {
-			http.Error(w, `{"message":"No stats available for user"}`, http.StatusBadRequest)
-			return
-		}
-		http.Error(w, `{"message":"Internal server error"}`, http.StatusInternalServerError)
+	if !ok || username == "" {
+		h.Logger.Warn("Failed to retrieve username from session")
+		http.Error(w, `{"message":"Invalid session"}`, http.StatusUnauthorized)
 		return
 	}
 
+	h.Logger.Info("Processing stats request", zap.String("username", username))
+
+	statsMessage, err := h.StatsService.GetStats(username)
+	if err != nil {
+		if errors.Is(err, services.ErrNoStatsForUser) {
+			h.Logger.Warn("No statistics for user", zap.String("username", username))
+			http.Error(w, `{"message":"No stats available for user"}`, http.StatusBadRequest)
+			return
+		}
+		h.Logger.Error("Failed to retrieve statistics", zap.String("username", username))
+		http.Error(w, `{"message":"Internal server error"}`, http.StatusInternalServerError)
+		return
+	}
+	h.Logger.Info("Stats retrieved successfully", zap.String("username", username))
 	json.NewEncoder(w).Encode(map[string]string{
 		"message": statsMessage,
 	})

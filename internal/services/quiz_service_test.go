@@ -16,7 +16,11 @@ func TestQuizService_GetQuestions(t *testing.T) {
 	}
 	s.LoadQuestions(questions)
 
-	result := s.GetQuestions()
+	result, err := s.GetQuestions()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	assert.NoError(t, err, "expected no error when getting questions")
 	assert.Equal(t, questions, result, "expected questions to match loaded questions")
 }
 
