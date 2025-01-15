@@ -4,7 +4,9 @@ Copyright © 2025 Zsuzsa Makara <dzsodie@gmail.com>
 package main
 
 import (
+	"log"
 	"net/http"
+	"os"
 
 	"github.com/Dzsodie/quiz_app/internal/handlers"
 	"github.com/Dzsodie/quiz_app/internal/health"
@@ -13,7 +15,6 @@ import (
 	"github.com/Dzsodie/quiz_app/internal/utils"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/sessions"
-	"go.uber.org/zap"
 
 	_ "github.com/Dzsodie/quiz_app/docs"
 	httpSwagger "github.com/swaggo/http-swagger"
@@ -34,7 +35,18 @@ import (
 // @host localhost:8080
 // @BasePath /
 func main() {
-	logger, _ := zap.NewProduction()
+	// Get environment and log file path
+	env := os.Getenv("ENV") // "production" or "development"
+	logFilePath := os.Getenv("LOG_FILE_PATH")
+	if logFilePath == "" {
+		logFilePath = "logs/app.log"
+	}
+
+	// Initialize logger
+	logger, err := utils.InitializeLogger(env, logFilePath)
+	if err != nil {
+		log.Fatalf("Failed to initialize logger: %v", err)
+	}
 	defer logger.Sync()
 	sugar := logger.Sugar()
 
