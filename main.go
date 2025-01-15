@@ -4,16 +4,16 @@ Copyright © 2025 Zsuzsa Makara <dzsodie@gmail.com>
 package main
 
 import (
-	"fmt"
-	"log"
 	"net/http"
 
 	"github.com/Dzsodie/quiz_app/internal/handlers"
+	"github.com/Dzsodie/quiz_app/internal/health"
 	"github.com/Dzsodie/quiz_app/internal/middleware"
 	"github.com/Dzsodie/quiz_app/internal/services"
 	"github.com/Dzsodie/quiz_app/internal/utils"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/sessions"
+	"go.uber.org/zap"
 
 	_ "github.com/Dzsodie/quiz_app/docs"
 	httpSwagger "github.com/swaggo/http-swagger"
@@ -34,11 +34,15 @@ import (
 // @host localhost:8080
 // @BasePath /
 func main() {
+	logger, _ := zap.NewProduction()
+	defer logger.Sync()
+	sugar := logger.Sugar()
+
 	quizService := &services.QuizService{}
 	// Load questions from the CSV file into the service
 	questions, err := utils.ReadCSV("questions.csv")
 	if err != nil {
-		log.Fatalf("Error reading CSV: %v", err)
+		sugar.Fatalf("Error reading CSV: %v", err)
 	}
 	quizService.LoadQuestions(questions)
 	quizHandler := handlers.NewQuizHandler(quizService)
@@ -73,7 +77,12 @@ func main() {
 	// Swagger routes
 	r.PathPrefix("/swagger/").Handler(httpSwagger.WrapHandler)
 
+	// Health check route
+	inMemoryDB := make(map[string]string) // Simulating in-memory DB
+	healthChecker := health.NewHealthCheck(sugar, handlers.SessionStore, inMemoryDB)
+	r.HandleFunc("/health", healthChecker.HealthCheckHandler).Methods("GET")
+
 	// Start server
-	fmt.Println("Server is running on port 8080...")
-	log.Fatal(http.ListenAndServe(":8080", r))
+	sugar.Info("Server is running on port 8080...")
+	sugar.Fatal(http.ListenAndServe(":8080", r))
 }
