@@ -22,6 +22,10 @@ func ReadCSV(filename string) ([]models.Question, error) {
 		return nil, fmt.Errorf("failed to read CSV file: %w", err)
 	}
 
+	if len(records) == 0 {
+		return nil, fmt.Errorf("CSV file is empty")
+	}
+
 	var questions []models.Question
 	for i, record := range records {
 		if i == 0 { // Skip header
