@@ -5,6 +5,10 @@
 ![Swagger](https://img.shields.io/badge/Swagger-API%20Docs-green?style=for-the-badge&logo=swagger)
 ![Gorilla Toolkit](https://img.shields.io/badge/Gorilla-Toolkit-blue?style=for-the-badge&logo=go)
 ![Cobra CLI](https://img.shields.io/badge/Cobra-CLI-purple?style=for-the-badge&logo=go)
+![Testify](https://img.shields.io/badge/Testify-Go%20Testing-orange?style=for-the-badge&logo=go)
+![Zap Logging](https://img.shields.io/badge/Zap-Logging-blueviolet?style=for-the-badge&logo=go)
+![GoAccess](https://img.shields.io/badge/GoAccess-Log%20Analyzer-darkgreen?style=for-the-badge&logo=go)
+
 
 A Go-based quiz application that supports user registration, login, and quiz functionalities. This app is built with the Gorilla web toolkit and includes Swagger documentation for easy API interaction.
 
@@ -23,11 +27,11 @@ A Go-based quiz application that supports user registration, login, and quiz fun
 
 ## Installation
 
-1. First of all open your web browser and go to the official Go downloads page.
+1. First of all open your web browser and go to the official [Go downloads](https://go.dev/dl/) page.
 
 2. Download the installer for your operating system. Follow the instructions.
 
-3. Add Go to your system path in your ~/.profile, ~/.bashrc or ~/.zshrc file.
+3. Add Go to your system path in your `~/.profile`, `~/.bashrc` or `~/.zshrc` file.
     ```bash
     export PATH=$PATH:/usr/local/go/bin
     ```
@@ -64,8 +68,8 @@ A Go-based quiz application that supports user registration, login, and quiz fun
 ## Usage through REST API
 
 - Import the Postman collection from the postman/quiz_app.postman_collection.json.
-- Register a user via the /register endpoint.
-    Add Content-Type : application/json to the headers if it is missing.
+- Register a user via the `/register` endpoint.
+    Add `Content-Type : application/json` to the headers if it is missing.
     
     Example username and password payload.
     ```bash
@@ -74,10 +78,10 @@ A Go-based quiz application that supports user registration, login, and quiz fun
     "password": "Valid@123"
     }
     ```
-- Log in using the /login endpoint. Add Content-Type : application/json to the headers if it is missing. The same username and password should be added to the basic authentication.
-- Start a quiz with /quiz/start. Add Content-Type : application/json to the headers if it is missing. The same username and password should be added to the basic authentication.
-- Get next question on /quiz/next. Add Content-Type : application/json to the headers if it is missing. The same username and password should be added to the basic authentication.
-- Submit answers to questions using /quiz/submit.  Add Content-Type : application/json to the headers if it is missing. The same username and password should be added to the basic authentication.
+- Log in using the `/login` endpoint. Add `Content-Type : application/json` to the headers if it is missing. The same username and password should be added to the basic authentication.
+- Start a quiz with `/quiz/start`. Add `Content-Type : application/json` to the headers if it is missing. The same username and password should be added to the basic authentication.
+- Get next question on `/quiz/next`. Add `Content-Type : application/json` to the headers if it is missing. The same username and password should be added to the basic authentication.
+- Submit answers to questions using `/quiz/submit`.  Add `Content-Type : application/json` to the headers if it is missing. The same username and password should be added to the basic authentication.
     Example payload for answer.
     ```bash
     {
@@ -85,8 +89,8 @@ A Go-based quiz application that supports user registration, login, and quiz fun
      "answer": 2
     }
     ```
-- View results at /quiz/results. Add Content-Type : application/json to the headers if it is missing. The same username and password should be added to the basic authentication.
-- Get statistics at /quiz/stats. Add Content-Type : application/json to the headers if it is missing. The same username and password should be added to the basic authentication.
+- View results at `/quiz/results`. Add `Content-Type : application/json` to the headers if it is missing. The same username and password should be added to the basic authentication.
+- Get statistics at `/quiz/stats`. Add `Content-Type : application/json` to the headers if it is missing. The same username and password should be added to the basic authentication.
 
 ## API Documentation
 
@@ -107,20 +111,20 @@ Swagger documentation is available at: http://localhost:8080/swagger/index.html
 3. Test coverage can be seen with the following command
     ```bash
     go test -cover ./
-    ```
 
 ## Logging
-    Zap logging is used in the quiz app. 
-    In the utils/logger.go the log format is configured and the logs are collected to the logs/app.log file.
+
+Zap logging is used in the quiz app. 
+    In the `utils/logger.go` the log format is configured and the logs are collected to the `logs/app.log` file.
 
 ## Monitoring
 
 1. For GoAccess monitoring get GoAccess.
-    Windows:
-    - Download the [GoAccess](https://goaccess.io/)executable from the official website.
-    - Follow the installation instructions for your Windows setup.
+    - Windows:
+        - Download the [GoAccess](https://goaccess.io/) executable from the official website.
+        - Follow the installation instructions for your Windows setup.
 
-    MacOS: 
+   - MacOS: 
     ```bash
     brew install goaccess
     ```
@@ -138,12 +142,18 @@ Swagger documentation is available at: http://localhost:8080/swagger/index.html
     ```bash
     goaccess quiz_app/logs/app.log -o report.html
     ```
-5. Open the report.html in your favorite browser.
+5. Open the `report.html` in your favorite browser.
 6. For real time monitoring use this command and open the report as mentioned before.
 
     ```bash
     tail -f quiz_app/logs/app.log | goaccess -o report.html --log-format=COMBINED
     ```
+
+## Future enhancement
+
+- Database connection
+- Containerization
+- Deploying to Cloud 
 
 ## License
 
@@ -152,5 +162,7 @@ This project is licensed under the MIT License. See the [LICENSE](LICENSE) file 
 ## Gopher  🐹
 
 "A fun way to learn Go and improve your coding skills!"
+
+![Golang Playground Guide](https://withcodeexample.com/wp-content/uploads/2025/01/golang-playground-guide-image.jpg)
 
 ---
