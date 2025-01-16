@@ -42,7 +42,7 @@ func ReadCSV(filename string) ([]models.Question, error) {
 
 	if len(records) == 0 {
 		Logger.Warn("CSV file is empty", zap.String("filename", filename))
-		return nil, fmt.Errorf("CSV file is empty")
+		return nil, fmt.Errorf("CSV file is empty: %s", filename)
 	}
 
 	var questions []models.Question
@@ -52,7 +52,7 @@ func ReadCSV(filename string) ([]models.Question, error) {
 		}
 		if len(record) < 5 {
 			Logger.Warn("Invalid record in CSV file", zap.String("filename", filename), zap.Int("line", i+1), zap.Any("record", record))
-			return nil, fmt.Errorf("invalid record: %v", record)
+			return nil, fmt.Errorf("invalid answer format in record: %v", record)
 		}
 		answer, err := strconv.Atoi(record[4])
 		if err != nil {

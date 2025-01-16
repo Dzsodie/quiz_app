@@ -32,14 +32,13 @@ func NewAuthHandler(authService services.IAuthService, logger *zap.SugaredLogger
 // @Router /register [post]
 func (h *AuthHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 	var user models.User
-	if err := json.NewDecoder(r.Body).Decode(&user); err != nil || user.Username == "" || user.Password == "" {
-		h.Logger.Warn("Invalid input for login", zap.Error(err))
+	if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
+		h.Logger.Warn("Invalid input for registration", zap.Error(err))
 		http.Error(w, `{"message":"Invalid input"}`, http.StatusBadRequest)
 		return
 	}
 
-	err := h.AuthService.RegisterUser(user.Username, user.Password)
-	if err != nil {
+	if err := h.AuthService.RegisterUser(user.Username, user.Password); err != nil {
 		if err.Error() == "user already exists" {
 			h.Logger.Warn("User already exists", zap.String("username", user.Username))
 			w.WriteHeader(http.StatusConflict)
@@ -51,6 +50,7 @@ func (h *AuthHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
+
 	h.Logger.Info("User registered successfully", zap.String("username", user.Username))
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(map[string]string{"message": "User registered successfully"})
@@ -69,13 +69,12 @@ func (h *AuthHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 func (h *AuthHandler) LoginUser(w http.ResponseWriter, r *http.Request) {
 	var user models.User
 	if err := json.NewDecoder(r.Body).Decode(&user); err != nil || user.Username == "" || user.Password == "" {
-		http.Error(w, `{"message":"Invalid input"}`, http.StatusBadRequest)
 		h.Logger.Warn("Invalid input for login", zap.Error(err))
+		http.Error(w, `{"message":"Invalid input"}`, http.StatusBadRequest)
 		return
 	}
 
-	err := h.AuthService.AuthenticateUser(user.Username, user.Password)
-	if err != nil {
+	if err := h.AuthService.AuthenticateUser(user.Username, user.Password); err != nil {
 		if err.Error() == "invalid username or password" {
 			h.Logger.Warn("Invalid username or password", zap.String("username", user.Username))
 			http.Error(w, `{"message":"invalid username or password"}`, http.StatusUnauthorized)

@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"github.com/Dzsodie/quiz_app/internal/models"
+	"github.com/Dzsodie/quiz_app/internal/utils"
 	"go.uber.org/zap"
 )
 
@@ -27,6 +28,18 @@ func (s *AuthService) RegisterUser(username, password string) error {
 		panic("AuthService logger is not set")
 	}
 
+	// Validate username
+	if err := utils.ValidateUsername(username); err != nil {
+		s.Logger.Warn("User registration failed: invalid username", zap.Error(err))
+		return err
+	}
+
+	// Validate password
+	if err := utils.ValidatePassword(password, ""); err != nil {
+		s.Logger.Warn("User registration failed: invalid password", zap.Error(err))
+		return err
+	}
+
 	authMu.Lock()
 	defer authMu.Unlock()
 
@@ -35,9 +48,16 @@ func (s *AuthService) RegisterUser(username, password string) error {
 		return errors.New("user already exists")
 	}
 
+	// Hash the password
+	hashedPassword, err := utils.HashPassword(password)
+	if err != nil {
+		s.Logger.Error("User registration failed: error hashing password", zap.Error(err))
+		return err
+	}
+
 	users[username] = models.User{
 		Username: username,
-		Password: password,
+		Password: hashedPassword,
 	}
 	s.Logger.Info("User registered successfully", zap.String("username", username))
 	return nil
@@ -57,10 +77,13 @@ func (s *AuthService) AuthenticateUser(username, password string) error {
 		s.Logger.Warn("Authentication failed: user does not exist", zap.String("username", username))
 		return errors.New("invalid username or password")
 	}
-	if user.Password != password {
+
+	// Compare hashed password
+	if !utils.ComparePassword(user.Password, password) {
 		s.Logger.Warn("Authentication failed: invalid password", zap.String("username", username))
 		return errors.New("invalid username or password")
 	}
+
 	s.Logger.Info("User authenticated successfully", zap.String("username", username))
 	return nil
 }
