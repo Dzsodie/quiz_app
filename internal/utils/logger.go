@@ -17,15 +17,26 @@ func InitializeLogger(env string, logFilePath string) (*zap.Logger, error) {
 
 	// Set the log level based on the environment
 	var level zapcore.Level
-	var encoderConfig zapcore.EncoderConfig
 	if env == "production" {
 		level = zap.InfoLevel
-		encoderConfig = zap.NewProductionEncoderConfig()
 	} else {
 		level = zap.DebugLevel
-		encoderConfig = zap.NewDevelopmentEncoderConfig()
 	}
-	encoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder // Human-readable time format
+
+	// Encoder configuration for Common Log Format (CLF)
+	encoderConfig := zapcore.EncoderConfig{
+		TimeKey:        "time",
+		LevelKey:       "level",
+		NameKey:        "logger",
+		CallerKey:      "caller",
+		MessageKey:     "message",
+		StacktraceKey:  "stacktrace",
+		LineEnding:     zapcore.DefaultLineEnding,
+		EncodeLevel:    zapcore.CapitalLevelEncoder,
+		EncodeTime:     zapcore.TimeEncoderOfLayout("02/Jan/2006:15:04:05 -0700"), // CLF time format
+		EncodeDuration: zapcore.StringDurationEncoder,
+		EncodeCaller:   zapcore.ShortCallerEncoder,
+	}
 
 	// Create the file writer
 	file, err := os.OpenFile(logFilePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
@@ -34,11 +45,11 @@ func InitializeLogger(env string, logFilePath string) (*zap.Logger, error) {
 	}
 	fileWriter := zapcore.AddSync(file)
 
-	// Set up the core
+	// Create the core with custom format
 	core := zapcore.NewCore(
-		zapcore.NewJSONEncoder(encoderConfig), // Use JSON encoding
-		fileWriter,                            // Log to file
-		level,                                 // Log level
+		zapcore.NewConsoleEncoder(encoderConfig), // Use CLF-like console encoder
+		fileWriter,                               // Log to file
+		level,                                    // Log level
 	)
 
 	// Add console output for development
