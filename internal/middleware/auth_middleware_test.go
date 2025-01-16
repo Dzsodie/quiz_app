@@ -37,6 +37,9 @@ func TestAuthMiddleware(t *testing.T) {
 					t.Errorf("Failed to save session: %v", err)
 				}
 
+				for _, cookie := range rr.Result().Cookies() {
+					req.AddCookie(cookie)
+				}
 			},
 			expectedStatus: http.StatusOK,
 			expectedBody:   "OK",
@@ -49,6 +52,9 @@ func TestAuthMiddleware(t *testing.T) {
 					t.Errorf("Failed to save session: %v", err)
 				}
 
+				for _, cookie := range rr.Result().Cookies() {
+					req.AddCookie(cookie)
+				}
 			},
 			expectedStatus: http.StatusUnauthorized,
 			expectedBody:   "Unauthorized\n",
@@ -69,7 +75,6 @@ func TestAuthMiddleware(t *testing.T) {
 				if _, err := w.Write([]byte("OK")); err != nil {
 					t.Errorf("Failed to write response: %v", err)
 				}
-
 			})
 
 			handler := AuthMiddleware(dummyHandler)

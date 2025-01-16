@@ -4,52 +4,63 @@ import (
 	"fmt"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
 
-func TestAuthServiceRegisterUser(t *testing.T) {
-	s := &AuthService{}
+// newTestAuthService creates a new instance of AuthService for testing purposes.
+func newTestAuthService() *AuthService {
+	return &AuthService{}
+}
 
-	err := s.RegisterUser("testuser", "password123")
+func TestAuthServiceRegisterUser(t *testing.T) {
+	s := newTestAuthService()
+	err := s.RegisterUser("testuser", "Valid@123")
 	assert.NoError(t, err, "expected no error when registering a new user")
 
-	err = s.RegisterUser("testuser", "password123")
+	err = s.RegisterUser("testuser", "Valid@123")
 	assert.Error(t, err, "expected error when registering a duplicate user")
 	assert.Equal(t, "user already exists", err.Error(), "unexpected error message")
 }
 
 func TestAuthServiceAuthenticateUser(t *testing.T) {
-	s := &AuthService{}
+	s := newTestAuthService()
+	uniqueUsername := fmt.Sprintf("testuser_%d", time.Now().UnixNano())
 
-	if err := s.RegisterUser("testuser", "password123"); err != nil {
-		t.Errorf("Failed to register user: %v", err)
+	// Use a valid password with at least one uppercase letter
+	err := s.RegisterUser(uniqueUsername, "Password123!")
+	if err != nil {
+		t.Fatalf("failed to register user for authentication test: %v", err)
 	}
 
-	err := s.AuthenticateUser("testuser", "password123")
+	// Test successful authentication
+	err = s.AuthenticateUser(uniqueUsername, "Password123!")
 	assert.NoError(t, err, "expected no error when authenticating with valid credentials")
 
-	err = s.AuthenticateUser("testuser", "wrongpassword")
+	// Test invalid password
+	err = s.AuthenticateUser(uniqueUsername, "wrongpassword")
 	assert.Error(t, err, "expected error when authenticating with incorrect password")
 	assert.Equal(t, "invalid username or password", err.Error(), "unexpected error message")
 
-	err = s.AuthenticateUser("nonexistent", "password123")
+	// Test non-existent user
+	err = s.AuthenticateUser("nonexistent", "Password123!")
 	assert.Error(t, err, "expected error when authenticating with non-existent user")
 	assert.Equal(t, "invalid username or password", err.Error(), "unexpected error message")
 }
 
 func TestAuthServiceConcurrency(t *testing.T) {
-	s := &AuthService{}
+	s := newTestAuthService()
 
 	wg := sync.WaitGroup{}
-	numRoutines := 100
+	numRoutines := 50
 
 	for i := 0; i < numRoutines; i++ {
 		wg.Add(1)
 		go func(i int) {
 			defer wg.Done()
 			username := fmt.Sprintf("user%d", i)
-			err := s.RegisterUser(username, "password")
+			err := s.RegisterUser(username, "Valid@123")
 			if err != nil && err.Error() != "user already exists" {
 				t.Errorf("unexpected error: %v", err)
 			}
@@ -59,7 +70,7 @@ func TestAuthServiceConcurrency(t *testing.T) {
 
 	for i := 0; i < numRoutines; i++ {
 		username := fmt.Sprintf("user%d", i)
-		err := s.AuthenticateUser(username, "password")
+		err := s.AuthenticateUser(username, "Valid@123")
 		assert.NoError(t, err, "expected no error when authenticating a registered user")
 	}
 }

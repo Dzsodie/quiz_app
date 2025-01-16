@@ -7,6 +7,8 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
+var logger *zap.Logger
+
 func InitializeLogger(env string, logFilePath string) (*zap.Logger, error) {
 	logDir := "logs"
 	if err := os.MkdirAll(logDir, 0755); err != nil {
@@ -54,9 +56,17 @@ func InitializeLogger(env string, logFilePath string) (*zap.Logger, error) {
 		)
 	}
 
-	logger := zap.New(core, zap.AddCaller(), zap.AddStacktrace(zapcore.ErrorLevel))
+	l := zap.New(core, zap.AddCaller(), zap.AddStacktrace(zapcore.ErrorLevel))
 
+	logger = l
 	zap.ReplaceGlobals(logger)
 
 	return logger, nil
+}
+
+func GetLogger() *zap.Logger {
+	if logger == nil {
+		logger = zap.NewNop()
+	}
+	return logger
 }

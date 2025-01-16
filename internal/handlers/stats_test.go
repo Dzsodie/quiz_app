@@ -9,7 +9,6 @@ import (
 	"github.com/Dzsodie/quiz_app/internal/services"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"go.uber.org/zap"
 )
 
 type MockStatsService struct {
@@ -23,13 +22,7 @@ func (m *MockStatsService) GetStats(username string) (string, error) {
 
 func TestStatsHandlerGetStats(t *testing.T) {
 	mockService := new(MockStatsService)
-	logger, _ := zap.NewProduction()
-	defer func() {
-		if err := logger.Sync(); err != nil {
-			t.Errorf("Failed to sync logger: %v", err)
-		}
-	}()
-	statsHandler := NewStatsHandler(mockService, logger)
+	statsHandler := NewStatsHandler(mockService)
 
 	SessionStore = createTestSessionStore()
 

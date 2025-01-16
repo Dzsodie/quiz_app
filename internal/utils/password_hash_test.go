@@ -2,13 +2,9 @@ package utils
 
 import (
 	"testing"
-
-	"go.uber.org/zap"
 )
 
 func TestHashPassword(t *testing.T) {
-	logger, _ := zap.NewDevelopment()
-	SetLogger(logger)
 
 	password := "ValidP@ssw0rd"
 	hashedPassword, err := HashPassword(password)
@@ -24,8 +20,6 @@ func TestHashPassword(t *testing.T) {
 }
 
 func TestComparePassword(t *testing.T) {
-	logger, _ := zap.NewDevelopment()
-	SetLogger(logger)
 
 	password := "ValidP@ssw0rd"
 	hashedPassword, _ := HashPassword(password)
@@ -52,8 +46,6 @@ func TestComparePassword(t *testing.T) {
 }
 
 func TestHashPasswordError(t *testing.T) {
-	logger, _ := zap.NewDevelopment()
-	SetLogger(logger)
 
 	shortPassword := "short"
 	_, err := HashPassword(shortPassword)

@@ -4,12 +4,9 @@ import (
 	"testing"
 
 	"github.com/Dzsodie/quiz_app/internal/models"
-	"go.uber.org/zap"
 )
 
 func TestValidateAnswerPayload(t *testing.T) {
-	logger, _ := zap.NewDevelopment()
-	SetLogger(logger)
 
 	questions := []models.Question{
 		{Question: "What is 2+2?", Options: []string{"1", "2", "4"}, Answer: 2},
@@ -39,8 +36,6 @@ func TestValidateAnswerPayload(t *testing.T) {
 }
 
 func TestValidateUsername(t *testing.T) {
-	logger, _ := zap.NewDevelopment()
-	SetLogger(logger)
 
 	tests := []struct {
 		name        string
@@ -62,8 +57,6 @@ func TestValidateUsername(t *testing.T) {
 }
 
 func TestValidatePassword(t *testing.T) {
-	logger, _ := zap.NewDevelopment()
-	SetLogger(logger)
 
 	tests := []struct {
 		name             string

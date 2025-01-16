@@ -14,26 +14,17 @@ var (
 	users  = make(map[string]models.User)
 )
 
-type AuthService struct {
-	Logger *zap.Logger
-}
-
-func NewAuthService(logger *zap.Logger) *AuthService {
-	return &AuthService{Logger: logger}
-}
+type AuthService struct{}
 
 func (s *AuthService) RegisterUser(username, password string) error {
-	if s.Logger == nil {
-		panic("AuthService logger is not set")
-	}
-
+	logger := utils.GetLogger().Sugar()
 	if err := utils.ValidateUsername(username); err != nil {
-		s.Logger.Warn("User registration failed: invalid username", zap.Error(err))
+		logger.Warn("User registration failed: invalid username", zap.Error(err))
 		return err
 	}
 
-	if err := utils.ValidatePassword(password, ""); err != nil {
-		s.Logger.Warn("User registration failed: invalid password", zap.Error(err))
+	if err := utils.ValidatePassword(password, "Password must contain at least one uppercase letter"); err != nil {
+		logger.Warn("User registration failed: invalid password", zap.Error(err))
 		return err
 	}
 
@@ -41,13 +32,13 @@ func (s *AuthService) RegisterUser(username, password string) error {
 	defer authMu.Unlock()
 
 	if _, exists := users[username]; exists {
-		s.Logger.Warn("User registration failed: user already exists", zap.String("username", username))
+		logger.Warn("User registration failed: user already exists", zap.String("username", username))
 		return errors.New("user already exists")
 	}
 
 	hashedPassword, err := utils.HashPassword(password)
 	if err != nil {
-		s.Logger.Error("User registration failed: error hashing password", zap.Error(err))
+		logger.Error("User registration failed: error hashing password", zap.Error(err))
 		return err
 	}
 
@@ -55,30 +46,27 @@ func (s *AuthService) RegisterUser(username, password string) error {
 		Username: username,
 		Password: hashedPassword,
 	}
-	s.Logger.Info("User registered successfully", zap.String("username", username))
+	logger.Info("User registered successfully", zap.String("username", username))
 	return nil
 }
 
 func (s *AuthService) AuthenticateUser(username, password string) error {
-	if s.Logger == nil {
-		panic("AuthService logger is not set")
-	}
-
+	logger := utils.GetLogger().Sugar()
 	authMu.Lock()
 	defer authMu.Unlock()
 
 	user, exists := users[username]
 	if !exists {
-		s.Logger.Warn("Authentication failed: user does not exist", zap.String("username", username))
+		logger.Warn("Authentication failed: user does not exist", zap.String("username", username))
 		return errors.New("invalid username or password")
 	}
 
 	if !utils.ComparePassword(user.Password, password) {
-		s.Logger.Warn("Authentication failed: invalid password", zap.String("username", username))
+		logger.Warn("Authentication failed: invalid password", zap.String("username", username))
 		return errors.New("invalid username or password")
 	}
 
-	s.Logger.Info("User authenticated successfully", zap.String("username", username))
+	logger.Info("User authenticated successfully", zap.String("username", username))
 	return nil
 }
 

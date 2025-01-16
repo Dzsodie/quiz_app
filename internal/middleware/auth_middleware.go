@@ -3,25 +3,22 @@ package middleware
 import (
 	"net/http"
 
+	"github.com/Dzsodie/quiz_app/internal/utils"
 	"github.com/gorilla/sessions"
 	"go.uber.org/zap"
 )
 
 var (
 	sessionStore *sessions.CookieStore
-	logger       *zap.Logger
 )
 
 func SetSessionStore(store *sessions.CookieStore) {
 	sessionStore = store
 }
 
-func SetLogger(l *zap.Logger) {
-	logger = l
-}
-
 func AuthMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		logger := utils.GetLogger().Sugar()
 		if logger == nil {
 			http.Error(w, "Internal server error", http.StatusInternalServerError)
 			return

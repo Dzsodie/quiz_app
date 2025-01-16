@@ -5,8 +5,9 @@ import (
 	"net/http"
 	"sync"
 
+	"github.com/Dzsodie/quiz_app/internal/utils"
+
 	"github.com/gorilla/sessions"
-	"go.uber.org/zap"
 )
 
 type HealthStatus struct {
@@ -16,15 +17,13 @@ type HealthStatus struct {
 }
 
 type HealthCheck struct {
-	Logger       *zap.SugaredLogger
 	SessionStore *sessions.CookieStore
 	Mutex        *sync.Mutex
 	InMemoryDB   map[string]string
 }
 
-func NewHealthCheck(logger *zap.SugaredLogger, sessionStore *sessions.CookieStore, inMemoryDB map[string]string) *HealthCheck {
+func NewHealthCheck(sessionStore *sessions.CookieStore, inMemoryDB map[string]string) *HealthCheck {
 	return &HealthCheck{
-		Logger:       logger,
 		SessionStore: sessionStore,
 		Mutex:        &sync.Mutex{},
 		InMemoryDB:   inMemoryDB,
@@ -32,6 +31,8 @@ func NewHealthCheck(logger *zap.SugaredLogger, sessionStore *sessions.CookieStor
 }
 
 func (hc *HealthCheck) HealthCheckHandler(w http.ResponseWriter, r *http.Request) {
+	logger := utils.GetLogger().Sugar()
+
 	status := HealthStatus{
 		InMemoryDB: hc.checkInMemoryDB(),
 		Sessions:   hc.checkSessionStore(),
@@ -40,10 +41,10 @@ func (hc *HealthCheck) HealthCheckHandler(w http.ResponseWriter, r *http.Request
 
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(status); err != nil {
-		hc.Logger.Warnw("Failed to encode health status: %v", err)
+		logger.Warnw("Failed to encode health status: %v", err)
 	}
 
-	hc.Logger.Infow("Health check executed", "status", status)
+	logger.Infow("Health check executed", "status", status)
 }
 
 func (hc *HealthCheck) checkInMemoryDB() string {

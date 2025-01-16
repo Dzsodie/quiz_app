@@ -60,20 +60,23 @@ func TestQuizServiceSubmitAnswer(t *testing.T) {
 	}
 	s.LoadQuestions(questions)
 	if err := s.StartQuiz("testuser"); err != nil {
-		t.Errorf("Failed to start quiz for user 'testuser': %v", err)
+		t.Fatalf("Failed to start quiz for user 'testuser': %v", err)
 	}
 
+	// Test valid answer
 	correct, err := s.SubmitAnswer("testuser", 0, 1)
 	assert.NoError(t, err, "expected no error when submitting a valid answer")
 	assert.True(t, correct, "expected answer to be marked as correct")
 
+	// Test invalid answer
 	correct, err = s.SubmitAnswer("testuser", 0, 0)
 	assert.NoError(t, err, "expected no error when submitting an incorrect answer")
 	assert.False(t, correct, "expected answer to be marked as incorrect")
 
+	// Test invalid question index
 	_, err = s.SubmitAnswer("testuser", 10, 0)
 	assert.Error(t, err, "expected error when submitting for an invalid question index")
-	assert.Equal(t, "invalid question index", err.Error(), "unexpected error message")
+	assert.Equal(t, "question index is out of range", err.Error(), "unexpected error message")
 }
 
 func TestQuizServiceGetResults(t *testing.T) {

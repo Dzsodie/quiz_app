@@ -7,12 +7,9 @@ import (
 	"strings"
 
 	"github.com/Dzsodie/quiz_app/internal/models"
-	"go.uber.org/zap"
 )
 
 func TestReadCSV(t *testing.T) {
-	logger, _ := zap.NewDevelopment()
-	SetLogger(logger)
 
 	t.Run("Valid CSV file", func(t *testing.T) {
 		testCSV := "test_valid.csv"

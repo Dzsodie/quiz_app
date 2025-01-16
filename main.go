@@ -54,11 +54,9 @@ func main() {
 
 	sugar.Infof("Application started in %s mode", env)
 
-	utils.SetLogger(logger)
-
-	quizService := &services.QuizService{Logger: logger}
-	authService := &services.AuthService{Logger: logger}
-	statsService := &services.StatsService{Logger: logger}
+	quizService := &services.QuizService{}
+	authService := &services.AuthService{}
+	statsService := &services.StatsService{}
 
 	sugar.Info("Loading questions from CSV...")
 	questions, err := utils.ReadCSV("questions.csv")
@@ -69,14 +67,13 @@ func main() {
 
 	quizService.LoadQuestions(questions)
 
-	quizHandler := handlers.NewQuizHandler(quizService, sugar)
-	authHandler := handlers.NewAuthHandler(authService, sugar)
-	statsHandler := handlers.NewStatsHandler(statsService, logger)
+	quizHandler := handlers.NewQuizHandler(quizService)
+	authHandler := handlers.NewAuthHandler(authService)
+	statsHandler := handlers.NewStatsHandler(statsService)
 
 	r := mux.NewRouter()
 	handlers.SessionStore = sessions.NewCookieStore([]byte("quiz-secret"))
 	middleware.SetSessionStore(handlers.SessionStore)
-	middleware.SetLogger(logger)
 
 	r.HandleFunc("/register", authHandler.RegisterUser).Methods("POST")
 	r.HandleFunc("/login", authHandler.LoginUser).Methods("POST")
@@ -93,7 +90,7 @@ func main() {
 	r.PathPrefix("/swagger/").Handler(httpSwagger.WrapHandler)
 
 	inMemoryDB := make(map[string]string)
-	healthChecker := health.NewHealthCheck(sugar, handlers.SessionStore, inMemoryDB)
+	healthChecker := health.NewHealthCheck(handlers.SessionStore, inMemoryDB)
 	r.HandleFunc("/health", healthChecker.HealthCheckHandler).Methods("GET")
 
 	sugar.Info("Server is running on port 8080...")

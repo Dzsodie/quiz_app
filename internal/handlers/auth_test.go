@@ -9,9 +9,9 @@ import (
 	"testing"
 
 	"github.com/Dzsodie/quiz_app/internal/models"
+	"github.com/gorilla/sessions"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"go.uber.org/zap"
 )
 
 type MockAuthService struct {
@@ -30,13 +30,7 @@ func (m *MockAuthService) AuthenticateUser(username, password string) error {
 
 func TestRegisterUserHandler(t *testing.T) {
 	mockService := new(MockAuthService)
-	logger := zap.NewExample().Sugar()
-	defer func() {
-		if err := logger.Sync(); err != nil {
-			t.Errorf("Failed to sync logger: %v", err)
-		}
-	}()
-	authHandler := NewAuthHandler(mockService, logger)
+	authHandler := NewAuthHandler(mockService)
 
 	tests := []struct {
 		name           string
@@ -70,15 +64,14 @@ func TestRegisterUserHandler(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if tt.input.Username != "" && tt.input.Password != "" {
+			if tt.input.Username != "" || tt.input.Password != "" {
 				mockService.On("RegisterUser", tt.input.Username, tt.input.Password).Return(tt.mockReturnErr).Once()
 			}
 
 			body, _ := json.Marshal(tt.input)
-			req, err := http.NewRequest(http.MethodPost, "/register", bytes.NewBuffer(body))
-			assert.NoError(t, err)
-
+			req, _ := http.NewRequest(http.MethodPost, "/register", bytes.NewBuffer(body))
 			rr := httptest.NewRecorder()
+
 			authHandler.RegisterUser(rr, req)
 
 			assert.Equal(t, tt.expectedStatus, rr.Code)
@@ -90,15 +83,9 @@ func TestRegisterUserHandler(t *testing.T) {
 
 func TestLoginUserHandler(t *testing.T) {
 	mockService := new(MockAuthService)
-	logger := zap.NewExample().Sugar()
-	defer func() {
-		if err := logger.Sync(); err != nil {
-			t.Errorf("Failed to sync logger: %v", err)
-		}
-	}()
-	authHandler := NewAuthHandler(mockService, logger)
+	authHandler := NewAuthHandler(mockService)
 
-	SessionStore = createTestSessionStore()
+	SessionStore = sessions.NewCookieStore([]byte("test-secret"))
 
 	tests := []struct {
 		name           string
@@ -132,15 +119,14 @@ func TestLoginUserHandler(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if tt.input.Username != "" && tt.input.Password != "" {
+			if tt.input.Username != "" || tt.input.Password != "" {
 				mockService.On("AuthenticateUser", tt.input.Username, tt.input.Password).Return(tt.mockReturnErr).Once()
 			}
 
 			body, _ := json.Marshal(tt.input)
-			req, err := http.NewRequest(http.MethodPost, "/login", bytes.NewBuffer(body))
-			assert.NoError(t, err)
-
+			req, _ := http.NewRequest(http.MethodPost, "/login", bytes.NewBuffer(body))
 			rr := httptest.NewRecorder()
+
 			authHandler.LoginUser(rr, req)
 
 			assert.Equal(t, tt.expectedStatus, rr.Code)

@@ -11,7 +11,6 @@ import (
 	"github.com/gorilla/sessions"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"go.uber.org/zap"
 )
 
 type MockQuizService struct {
@@ -52,19 +51,13 @@ func (m *MockQuizService) GetResults(username string) (int, error) {
 
 func TestQuizHandlerGetQuestions(t *testing.T) {
 	mockService := new(MockQuizService)
-	logger := zap.NewExample().Sugar()
-	defer func() {
-		if err := logger.Sync(); err != nil {
-			t.Errorf("Failed to sync logger: %v", err)
-		}
-	}()
-	quizHandler := NewQuizHandler(mockService, logger)
+	quizHandler := NewQuizHandler(mockService)
 
 	questions := []models.Question{
 		{Question: "What is 2+2?", Options: []string{"3", "4", "5"}, Answer: 1},
 	}
 
-	mockService.On("GetQuestions").Return(questions)
+	mockService.On("GetQuestions").Return(questions, nil)
 
 	req, err := http.NewRequest(http.MethodGet, "/questions", nil)
 	assert.NoError(t, err)
@@ -79,43 +72,32 @@ func TestQuizHandlerGetQuestions(t *testing.T) {
 
 func TestQuizHandlerStartQuiz(t *testing.T) {
 	mockService := new(MockQuizService)
-	logger := zap.NewExample().Sugar()
-	defer func() {
-		if err := logger.Sync(); err != nil {
-			t.Errorf("Failed to sync logger: %v", err)
-		}
-	}()
-	quizHandler := NewQuizHandler(mockService, logger)
+	quizHandler := NewQuizHandler(mockService)
 
 	SessionStore = createTestSessionStore()
+
 	req, err := http.NewRequest(http.MethodPost, "/quiz/start", nil)
 	assert.NoError(t, err)
 
 	rr := httptest.NewRecorder()
+
 	session, _ := SessionStore.Get(req, "quiz-session")
 	session.Values["username"] = "testuser"
-	if err := session.Save(req, rr); err != nil {
-		t.Errorf("Failed to save session: %v", err)
-	}
+	err = session.Save(req, rr)
+	assert.NoError(t, err, "Failed to save session")
 
-	mockService.On("StartQuiz", "testuser").Return()
+	mockService.On("StartQuiz", "testuser").Return(nil).Once()
 
 	quizHandler.StartQuiz(rr, req)
 
 	assert.Equal(t, http.StatusOK, rr.Code)
-	assert.JSONEq(t, `{"message":"Quiz started","next_endpoint":"/quiz/next"}`, rr.Body.String())
+	assert.JSONEq(t, `{"status":"quiz started","next_endpoint":"/quiz/next"}`, rr.Body.String())
 	mockService.AssertExpectations(t)
 }
 
 func TestQuizHandlerNextQuestion(t *testing.T) {
 	mockService := new(MockQuizService)
-	logger := zap.NewExample().Sugar()
-	defer func() {
-		if err := logger.Sync(); err != nil {
-			t.Errorf("Failed to sync logger: %v", err)
-		}
-	}()
-	quizHandler := NewQuizHandler(mockService, logger)
+	quizHandler := NewQuizHandler(mockService)
 
 	SessionStore = createTestSessionStore()
 	req, err := http.NewRequest(http.MethodGet, "/quiz/next", nil)
@@ -140,27 +122,26 @@ func TestQuizHandlerNextQuestion(t *testing.T) {
 
 func TestQuizHandlerSubmitAnswer(t *testing.T) {
 	mockService := new(MockQuizService)
-	logger := zap.NewExample().Sugar()
-	defer func() {
-		if err := logger.Sync(); err != nil {
-			t.Errorf("Failed to sync logger: %v", err)
-		}
-	}()
-	quizHandler := NewQuizHandler(mockService, logger)
+	quizHandler := NewQuizHandler(mockService)
 
 	SessionStore = createTestSessionStore()
-	reqBody := `{"QuestionIndex":1,"Answer":2}`
+
+	reqBody := `{"QuestionIndex":0,"Answer":1}`
 	req, err := http.NewRequest(http.MethodPost, "/quiz/submit", bytes.NewBufferString(reqBody))
 	assert.NoError(t, err)
 
 	rr := httptest.NewRecorder()
+
 	session, _ := SessionStore.Get(req, "quiz-session")
 	session.Values["username"] = "testuser"
-	if err := session.Save(req, rr); err != nil {
-		t.Errorf("Failed to save session: %v", err)
-	}
+	err = session.Save(req, rr)
+	assert.NoError(t, err, "Failed to save session")
 
-	mockService.On("SubmitAnswer", "testuser", 0, 2).Return(true, nil)
+	questions := []models.Question{
+		{Question: "What is 2+2?", Options: []string{"3", "4", "5"}, Answer: 1},
+	}
+	mockService.On("GetQuestions").Return(questions, nil).Once()
+	mockService.On("SubmitAnswer", "testuser", 0, 1).Return(true, nil).Once()
 
 	quizHandler.SubmitAnswer(rr, req)
 
@@ -171,13 +152,7 @@ func TestQuizHandlerSubmitAnswer(t *testing.T) {
 
 func TestQuizHandlerGetResults(t *testing.T) {
 	mockService := new(MockQuizService)
-	logger := zap.NewExample().Sugar()
-	defer func() {
-		if err := logger.Sync(); err != nil {
-			t.Errorf("Failed to sync logger: %v", err)
-		}
-	}()
-	quizHandler := NewQuizHandler(mockService, logger)
+	quizHandler := NewQuizHandler(mockService)
 
 	SessionStore = createTestSessionStore()
 	req, err := http.NewRequest(http.MethodGet, "/quiz/results", nil)
