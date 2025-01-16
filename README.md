@@ -62,8 +62,10 @@ A Go-based quiz application that supports user registration, login, and quiz fun
 
 ## CLI commands
 
-
-
+- quiz
+- start
+- score
+- exit
 
 ## Usage through REST API
 
@@ -79,8 +81,8 @@ A Go-based quiz application that supports user registration, login, and quiz fun
     }
     ```
 - Log in using the `/login` endpoint. Add `Content-Type : application/json` to the headers if it is missing. The same username and password should be added to the basic authentication.
-- Start a quiz with `/quiz/start`. Add `Content-Type : application/json` to the headers if it is missing. The same username and password should be added to the basic authentication.
-- Get next question on `/quiz/next`. Add `Content-Type : application/json` to the headers if it is missing. The same username and password should be added to the basic authentication.
+- Start a quiz with `/quiz/start`. The same username and password should be added to the basic authentication.
+- Get next question on `/quiz/next`. The same username and password should be added to the basic authentication.
 - Submit answers to questions using `/quiz/submit`.  Add `Content-Type : application/json` to the headers if it is missing. The same username and password should be added to the basic authentication.
     Example payload for answer.
     ```bash
@@ -89,8 +91,8 @@ A Go-based quiz application that supports user registration, login, and quiz fun
      "answer": 2
     }
     ```
-- View results at `/quiz/results`. Add `Content-Type : application/json` to the headers if it is missing. The same username and password should be added to the basic authentication.
-- Get statistics at `/quiz/stats`. Add `Content-Type : application/json` to the headers if it is missing. The same username and password should be added to the basic authentication.
+- View results at `/quiz/results`. The same username and password should be added to the basic authentication.
+- Get statistics at `/quiz/stats`. The same username and password should be added to the basic authentication.
 
 ## API Documentation
 
