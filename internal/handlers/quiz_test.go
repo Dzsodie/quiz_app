@@ -50,10 +50,14 @@ func (m *MockQuizService) GetResults(username string) (int, error) {
 	return args.Int(0), args.Error(1)
 }
 
-func TestQuizHandler_GetQuestions(t *testing.T) {
+func TestQuizHandlerGetQuestions(t *testing.T) {
 	mockService := new(MockQuizService)
 	logger := zap.NewExample().Sugar()
-	defer logger.Sync()
+	defer func() {
+		if err := logger.Sync(); err != nil {
+			t.Errorf("Failed to sync logger: %v", err)
+		}
+	}()
 	quizHandler := NewQuizHandler(mockService, logger)
 
 	questions := []models.Question{
@@ -73,10 +77,14 @@ func TestQuizHandler_GetQuestions(t *testing.T) {
 	mockService.AssertExpectations(t)
 }
 
-func TestQuizHandler_StartQuiz(t *testing.T) {
+func TestQuizHandlerStartQuiz(t *testing.T) {
 	mockService := new(MockQuizService)
 	logger := zap.NewExample().Sugar()
-	defer logger.Sync()
+	defer func() {
+		if err := logger.Sync(); err != nil {
+			t.Errorf("Failed to sync logger: %v", err)
+		}
+	}()
 	quizHandler := NewQuizHandler(mockService, logger)
 
 	SessionStore = createTestSessionStore()
@@ -86,7 +94,9 @@ func TestQuizHandler_StartQuiz(t *testing.T) {
 	rr := httptest.NewRecorder()
 	session, _ := SessionStore.Get(req, "quiz-session")
 	session.Values["username"] = "testuser"
-	session.Save(req, rr)
+	if err := session.Save(req, rr); err != nil {
+		t.Errorf("Failed to save session: %v", err)
+	}
 
 	mockService.On("StartQuiz", "testuser").Return()
 
@@ -97,10 +107,14 @@ func TestQuizHandler_StartQuiz(t *testing.T) {
 	mockService.AssertExpectations(t)
 }
 
-func TestQuizHandler_NextQuestion(t *testing.T) {
+func TestQuizHandlerNextQuestion(t *testing.T) {
 	mockService := new(MockQuizService)
 	logger := zap.NewExample().Sugar()
-	defer logger.Sync()
+	defer func() {
+		if err := logger.Sync(); err != nil {
+			t.Errorf("Failed to sync logger: %v", err)
+		}
+	}()
 	quizHandler := NewQuizHandler(mockService, logger)
 
 	SessionStore = createTestSessionStore()
@@ -110,7 +124,9 @@ func TestQuizHandler_NextQuestion(t *testing.T) {
 	rr := httptest.NewRecorder()
 	session, _ := SessionStore.Get(req, "quiz-session")
 	session.Values["username"] = "testuser"
-	session.Save(req, rr)
+	if err := session.Save(req, rr); err != nil {
+		t.Errorf("Failed to save session: %v", err)
+	}
 
 	question := &models.Question{Question: "What is 2+2?", Options: []string{"3", "4", "5"}, Answer: 1}
 	mockService.On("GetNextQuestion", "testuser").Return(question, nil)
@@ -122,10 +138,14 @@ func TestQuizHandler_NextQuestion(t *testing.T) {
 	mockService.AssertExpectations(t)
 }
 
-func TestQuizHandler_SubmitAnswer(t *testing.T) {
+func TestQuizHandlerSubmitAnswer(t *testing.T) {
 	mockService := new(MockQuizService)
 	logger := zap.NewExample().Sugar()
-	defer logger.Sync()
+	defer func() {
+		if err := logger.Sync(); err != nil {
+			t.Errorf("Failed to sync logger: %v", err)
+		}
+	}()
 	quizHandler := NewQuizHandler(mockService, logger)
 
 	SessionStore = createTestSessionStore()
@@ -136,7 +156,9 @@ func TestQuizHandler_SubmitAnswer(t *testing.T) {
 	rr := httptest.NewRecorder()
 	session, _ := SessionStore.Get(req, "quiz-session")
 	session.Values["username"] = "testuser"
-	session.Save(req, rr)
+	if err := session.Save(req, rr); err != nil {
+		t.Errorf("Failed to save session: %v", err)
+	}
 
 	mockService.On("SubmitAnswer", "testuser", 0, 2).Return(true, nil)
 
@@ -147,10 +169,14 @@ func TestQuizHandler_SubmitAnswer(t *testing.T) {
 	mockService.AssertExpectations(t)
 }
 
-func TestQuizHandler_GetResults(t *testing.T) {
+func TestQuizHandlerGetResults(t *testing.T) {
 	mockService := new(MockQuizService)
 	logger := zap.NewExample().Sugar()
-	defer logger.Sync()
+	defer func() {
+		if err := logger.Sync(); err != nil {
+			t.Errorf("Failed to sync logger: %v", err)
+		}
+	}()
 	quizHandler := NewQuizHandler(mockService, logger)
 
 	SessionStore = createTestSessionStore()
@@ -160,7 +186,9 @@ func TestQuizHandler_GetResults(t *testing.T) {
 	rr := httptest.NewRecorder()
 	session, _ := SessionStore.Get(req, "quiz-session")
 	session.Values["username"] = "testuser"
-	session.Save(req, rr)
+	if err := session.Save(req, rr); err != nil {
+		t.Errorf("Failed to save session: %v", err)
+	}
 
 	mockService.On("GetResults", "testuser").Return(10, nil)
 

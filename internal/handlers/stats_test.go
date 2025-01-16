@@ -21,10 +21,14 @@ func (m *MockStatsService) GetStats(username string) (string, error) {
 	return args.String(0), args.Error(1)
 }
 
-func TestStatsHandler_GetStats(t *testing.T) {
+func TestStatsHandlerGetStats(t *testing.T) {
 	mockService := new(MockStatsService)
 	logger, _ := zap.NewProduction()
-	defer logger.Sync()
+	defer func() {
+		if err := logger.Sync(); err != nil {
+			t.Errorf("Failed to sync logger: %v", err)
+		}
+	}()
 	statsHandler := NewStatsHandler(mockService, logger)
 
 	SessionStore = createTestSessionStore()
@@ -74,7 +78,9 @@ func TestStatsHandler_GetStats(t *testing.T) {
 
 			session, _ := SessionStore.Get(req, "quiz-session")
 			session.Values["username"] = tt.username
-			session.Save(req, rr)
+			if err := session.Save(req, rr); err != nil {
+				t.Errorf("Failed to save session: %v", err)
+			}
 
 			statsHandler.GetStats(rr, req)
 

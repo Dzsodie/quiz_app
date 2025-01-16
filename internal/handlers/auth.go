@@ -41,7 +41,10 @@ func (h *AuthHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 			h.Logger.Warn("User already exists", zap.String("username", user.Username))
 			w.WriteHeader(http.StatusConflict)
 			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(map[string]string{"message": "user already exists"})
+			if err := json.NewEncoder(w).Encode(map[string]string{"message": "user already exists"}); err != nil {
+				h.Logger.Warn("Failed to encode response: %v", err)
+			}
+
 		} else {
 			h.Logger.Error("Internal server error during registration", zap.Error(err))
 			http.Error(w, `{"message":"Internal server error"}`, http.StatusInternalServerError)
@@ -51,7 +54,9 @@ func (h *AuthHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 
 	h.Logger.Info("User registered successfully", zap.String("username", user.Username))
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(map[string]string{"message": "User registered successfully"})
+	if err := json.NewEncoder(w).Encode(map[string]string{"message": "User registered successfully"}); err != nil {
+		h.Logger.Warn("Failed to encode response: %v", err)
+	}
 }
 
 // @Summary Login a user
@@ -85,8 +90,14 @@ func (h *AuthHandler) LoginUser(w http.ResponseWriter, r *http.Request) {
 
 	session, _ := SessionStore.Get(r, "quiz-session")
 	session.Values["username"] = user.Username
-	session.Save(r, w)
+	if err := session.Save(r, w); err != nil {
+		h.Logger.Warn("Failed to save session: %v", err)
+	}
+
 	h.Logger.Info("User logged in successfully", zap.String("username", user.Username))
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]string{"message": "Login successful"})
+	if err := json.NewEncoder(w).Encode(map[string]string{"message": "user already exists"}); err != nil {
+		h.Logger.Warn("Failed to encode response: %v", err)
+	}
+
 }

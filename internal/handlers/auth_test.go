@@ -31,7 +31,11 @@ func (m *MockAuthService) AuthenticateUser(username, password string) error {
 func TestRegisterUserHandler(t *testing.T) {
 	mockService := new(MockAuthService)
 	logger := zap.NewExample().Sugar()
-	defer logger.Sync()
+	defer func() {
+		if err := logger.Sync(); err != nil {
+			t.Errorf("Failed to sync logger: %v", err)
+		}
+	}()
 	authHandler := NewAuthHandler(mockService, logger)
 
 	tests := []struct {
@@ -87,7 +91,11 @@ func TestRegisterUserHandler(t *testing.T) {
 func TestLoginUserHandler(t *testing.T) {
 	mockService := new(MockAuthService)
 	logger := zap.NewExample().Sugar()
-	defer logger.Sync()
+	defer func() {
+		if err := logger.Sync(); err != nil {
+			t.Errorf("Failed to sync logger: %v", err)
+		}
+	}()
 	authHandler := NewAuthHandler(mockService, logger)
 
 	SessionStore = createTestSessionStore()

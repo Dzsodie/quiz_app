@@ -39,7 +39,9 @@ func (hc *HealthCheck) HealthCheckHandler(w http.ResponseWriter, r *http.Request
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(status)
+	if err := json.NewEncoder(w).Encode(status); err != nil {
+		hc.Logger.Warnw("Failed to encode health status: %v", err)
+	}
 
 	hc.Logger.Infow("Health check executed", "status", status)
 }

@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestAuthService_RegisterUser(t *testing.T) {
+func TestAuthServiceRegisterUser(t *testing.T) {
 	s := &AuthService{}
 
 	err := s.RegisterUser("testuser", "password123")
@@ -19,10 +19,12 @@ func TestAuthService_RegisterUser(t *testing.T) {
 	assert.Equal(t, "user already exists", err.Error(), "unexpected error message")
 }
 
-func TestAuthService_AuthenticateUser(t *testing.T) {
+func TestAuthServiceAuthenticateUser(t *testing.T) {
 	s := &AuthService{}
 
-	s.RegisterUser("testuser", "password123")
+	if err := s.RegisterUser("testuser", "password123"); err != nil {
+		t.Errorf("Failed to register user: %v", err)
+	}
 
 	err := s.AuthenticateUser("testuser", "password123")
 	assert.NoError(t, err, "expected no error when authenticating with valid credentials")
@@ -36,7 +38,7 @@ func TestAuthService_AuthenticateUser(t *testing.T) {
 	assert.Equal(t, "invalid username or password", err.Error(), "unexpected error message")
 }
 
-func TestAuthService_Concurrency(t *testing.T) {
+func TestAuthServiceConcurrency(t *testing.T) {
 	s := &AuthService{}
 
 	wg := sync.WaitGroup{}

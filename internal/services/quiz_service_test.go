@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestQuizService_GetQuestions(t *testing.T) {
+func TestQuizServiceGetQuestions(t *testing.T) {
 	s := &QuizService{}
 	questions := []models.Question{
 		{Question: "What is 2+2?", Options: []string{"3", "4", "5"}, Answer: 1},
@@ -24,21 +24,25 @@ func TestQuizService_GetQuestions(t *testing.T) {
 	assert.Equal(t, questions, result, "expected questions to match loaded questions")
 }
 
-func TestQuizService_StartQuiz(t *testing.T) {
+func TestQuizServiceStartQuiz(t *testing.T) {
 	s := &QuizService{}
-	s.StartQuiz("testuser")
+	if err := s.StartQuiz("testuser"); err != nil {
+		t.Errorf("Failed to start quiz for user 'testuser': %v", err)
+	}
 
 	assert.Equal(t, 0, userScores["testuser"], "expected initial score to be 0")
 	assert.Equal(t, 0, userProgress["testuser"], "expected initial progress to be 0")
 }
 
-func TestQuizService_GetNextQuestion(t *testing.T) {
+func TestQuizServiceGetNextQuestion(t *testing.T) {
 	s := &QuizService{}
 	questions := []models.Question{
 		{Question: "What is 2+2?", Options: []string{"3", "4", "5"}, Answer: 1},
 	}
 	s.LoadQuestions(questions)
-	s.StartQuiz("testuser")
+	if err := s.StartQuiz("testuser"); err != nil {
+		t.Errorf("Failed to start quiz for user 'testuser': %v", err)
+	}
 
 	question, err := s.GetNextQuestion("testuser")
 	assert.NoError(t, err, "expected no error when fetching the next question")
@@ -49,13 +53,15 @@ func TestQuizService_GetNextQuestion(t *testing.T) {
 	assert.Equal(t, "no more questions", err.Error(), "unexpected error message")
 }
 
-func TestQuizService_SubmitAnswer(t *testing.T) {
+func TestQuizServiceSubmitAnswer(t *testing.T) {
 	s := &QuizService{}
 	questions := []models.Question{
 		{Question: "What is 2+2?", Options: []string{"3", "4", "5"}, Answer: 1},
 	}
 	s.LoadQuestions(questions)
-	s.StartQuiz("testuser")
+	if err := s.StartQuiz("testuser"); err != nil {
+		t.Errorf("Failed to start quiz for user 'testuser': %v", err)
+	}
 
 	correct, err := s.SubmitAnswer("testuser", 0, 1)
 	assert.NoError(t, err, "expected no error when submitting a valid answer")
@@ -70,9 +76,12 @@ func TestQuizService_SubmitAnswer(t *testing.T) {
 	assert.Equal(t, "invalid question index", err.Error(), "unexpected error message")
 }
 
-func TestQuizService_GetResults(t *testing.T) {
+func TestQuizServiceGetResults(t *testing.T) {
 	s := &QuizService{}
-	s.StartQuiz("testuser")
+	if err := s.StartQuiz("testuser"); err != nil {
+		t.Errorf("Failed to start quiz for user 'testuser': %v", err)
+	}
+
 	userScores["testuser"] = 5
 
 	score, err := s.GetResults("testuser")
@@ -84,7 +93,7 @@ func TestQuizService_GetResults(t *testing.T) {
 	assert.Equal(t, "quiz not started", err.Error(), "unexpected error message")
 }
 
-func TestQuizService_Concurrency(t *testing.T) {
+func TestQuizServiceConcurrency(t *testing.T) {
 	s := &QuizService{}
 	questions := []models.Question{
 		{Question: "What is 2+2?", Options: []string{"3", "4", "5"}, Answer: 1},
@@ -99,8 +108,14 @@ func TestQuizService_Concurrency(t *testing.T) {
 		go func(i int) {
 			defer wg.Done()
 			username := "user" + string(rune(i))
-			s.StartQuiz(username)
-			s.SubmitAnswer(username, 0, 1)
+			if err := s.StartQuiz(username); err != nil {
+				t.Errorf("Failed to start quiz for user '%s': %v", username, err)
+			}
+
+			if _, err := s.SubmitAnswer(username, 0, 1); err != nil {
+				t.Errorf("Failed to submit answer for user '%s': %v", username, err)
+			}
+
 		}(i)
 	}
 

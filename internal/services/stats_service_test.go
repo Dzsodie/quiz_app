@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestStatsService_GetStats(t *testing.T) {
+func TestStatsServiceGetStats(t *testing.T) {
 	s := &StatsService{}
 
 	userScores["testuser1"] = 10

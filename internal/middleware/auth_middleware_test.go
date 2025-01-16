@@ -33,7 +33,10 @@ func TestAuthMiddleware(t *testing.T) {
 			setupSession: func(req *http.Request, rr *httptest.ResponseRecorder) {
 				session, _ := sessionStore.Get(req, "quiz-session")
 				session.Values["username"] = "testuser"
-				session.Save(req, rr)
+				if err := session.Save(req, rr); err != nil {
+					t.Errorf("Failed to save session: %v", err)
+				}
+
 			},
 			expectedStatus: http.StatusOK,
 			expectedBody:   "OK",
@@ -42,7 +45,10 @@ func TestAuthMiddleware(t *testing.T) {
 			name: "Session missing username",
 			setupSession: func(req *http.Request, rr *httptest.ResponseRecorder) {
 				session, _ := sessionStore.Get(req, "quiz-session")
-				session.Save(req, rr)
+				if err := session.Save(req, rr); err != nil {
+					t.Errorf("Failed to save session: %v", err)
+				}
+
 			},
 			expectedStatus: http.StatusUnauthorized,
 			expectedBody:   "Unauthorized\n",
@@ -60,7 +66,10 @@ func TestAuthMiddleware(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			dummyHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(http.StatusOK)
-				w.Write([]byte("OK"))
+				if _, err := w.Write([]byte("OK")); err != nil {
+					t.Errorf("Failed to write response: %v", err)
+				}
+
 			})
 
 			handler := AuthMiddleware(dummyHandler)

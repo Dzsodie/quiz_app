@@ -35,7 +35,10 @@ func (h *QuizHandler) GetQuestions(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.Logger.Info("Questions retrieved")
-	json.NewEncoder(w).Encode(allQuestions)
+	if err := json.NewEncoder(w).Encode(allQuestions); err != nil {
+		h.Logger.Warn("Failed to encode quiz questions: %v", err)
+	}
+
 }
 
 // @Summary Start the quiz
@@ -54,10 +57,12 @@ func (h *QuizHandler) StartQuiz(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.Logger.Info("Quiz started", zap.String("username", username))
-	json.NewEncoder(w).Encode(map[string]string{
-		"message":       "Quiz started",
+	if err := json.NewEncoder(w).Encode(map[string]string{
+		"status":        "quiz started",
 		"next_endpoint": "/quiz/next",
-	})
+	}); err != nil {
+		h.Logger.Warn("Failed to encode response: %v", err)
+	}
 }
 
 // @Summary Get the next question
@@ -74,10 +79,13 @@ func (h *QuizHandler) NextQuestion(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		if err.Error() == "no more questions" {
 			h.Logger.Info("Quiz complete", zap.String("username", username))
-			json.NewEncoder(w).Encode(map[string]string{
-				"message":          "Quiz complete",
+			if err := json.NewEncoder(w).Encode(map[string]string{
+				"status":           "quiz complete",
 				"results_endpoint": "/quiz/results",
-			})
+			}); err != nil {
+				h.Logger.Warn("Failed to encode response: %v", err)
+			}
+
 			return
 		}
 		h.Logger.Error("Internal server error during get next question", zap.Error(err))
@@ -85,7 +93,10 @@ func (h *QuizHandler) NextQuestion(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	h.Logger.Info("Next question retrieved", zap.String("username", username))
-	json.NewEncoder(w).Encode(question)
+	if err := json.NewEncoder(w).Encode(question); err != nil {
+		h.Logger.Warn("Failed to encode question: %v", err)
+	}
+
 }
 
 // @Summary Submit an answer
@@ -135,10 +146,16 @@ func (h *QuizHandler) SubmitAnswer(w http.ResponseWriter, r *http.Request) {
 
 	if correct {
 		h.Logger.Info("Correct answer submitted", zap.String("username", username), zap.Int("questionIndex", payload.QuestionIndex))
-		json.NewEncoder(w).Encode(map[string]string{"message": "Correct answer"})
+		if err := json.NewEncoder(w).Encode(map[string]string{"message": "Correct answer"}); err != nil {
+			h.Logger.Warn("Failed to encode correct answer response: %v", err)
+		}
+
 	} else {
 		h.Logger.Info("Wrong answer submitted", zap.String("username", username), zap.Int("questionIndex", payload.QuestionIndex))
-		json.NewEncoder(w).Encode(map[string]string{"message": "Wrong answer"})
+		if err := json.NewEncoder(w).Encode(map[string]string{"message": "Wrong answer"}); err != nil {
+			h.Logger.Warn("Failed to encode wrong answer response: %v", err)
+		}
+
 	}
 }
 
@@ -164,5 +181,7 @@ func (h *QuizHandler) GetResults(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	h.Logger.Info("Quiz results retrieved", zap.String("username", username), zap.Int("score", score))
-	json.NewEncoder(w).Encode(map[string]int{"score": score})
+	if err := json.NewEncoder(w).Encode(map[string]int{"score": score}); err != nil {
+		h.Logger.Warn("Failed to encode score response: %v", err)
+	}
 }

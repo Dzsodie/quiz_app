@@ -48,7 +48,7 @@ func (h *StatsHandler) GetStats(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	h.Logger.Info("Stats retrieved successfully", zap.String("username", username))
-	json.NewEncoder(w).Encode(map[string]string{
-		"message": statsMessage,
-	})
+	if err := json.NewEncoder(w).Encode(map[string]string{"message": statsMessage}); err != nil {
+		h.Logger.Warn("Failed to encode score response: %v", err)
+	}
 }
