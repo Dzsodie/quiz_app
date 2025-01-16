@@ -9,13 +9,11 @@ import (
 	"go.uber.org/zap"
 )
 
-// AuthHandler handles authentication-related HTTP requests.
 type AuthHandler struct {
 	AuthService services.IAuthService
 	Logger      *zap.SugaredLogger
 }
 
-// NewAuthHandler creates a new instance of AuthHandler with the provided IAuthService implementation.
 func NewAuthHandler(authService services.IAuthService, logger *zap.SugaredLogger) *AuthHandler {
 	return &AuthHandler{AuthService: authService, Logger: logger}
 }

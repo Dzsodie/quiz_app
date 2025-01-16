@@ -14,7 +14,6 @@ import (
 	"go.uber.org/zap"
 )
 
-// MockQuizService is a mock implementation of the IQuizService interface.
 type MockQuizService struct {
 	mock.Mock
 }
@@ -80,7 +79,7 @@ func TestQuizHandler_StartQuiz(t *testing.T) {
 	defer logger.Sync()
 	quizHandler := NewQuizHandler(mockService, logger)
 
-	SessionStore = createTestSessionStore() // Helper to create a session store
+	SessionStore = createTestSessionStore()
 	req, err := http.NewRequest(http.MethodPost, "/quiz/start", nil)
 	assert.NoError(t, err)
 
@@ -172,7 +171,6 @@ func TestQuizHandler_GetResults(t *testing.T) {
 	mockService.AssertExpectations(t)
 }
 
-// Helper function to create a test session store
 func createTestSessionStore() *sessions.CookieStore {
 	store := sessions.NewCookieStore([]byte("test-secret"))
 	store.Options = &sessions.Options{

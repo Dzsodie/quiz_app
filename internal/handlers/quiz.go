@@ -10,13 +10,11 @@ import (
 	"go.uber.org/zap"
 )
 
-// QuizHandler handles quiz-related HTTP requests.
 type QuizHandler struct {
 	QuizService services.IQuizService
 	Logger      *zap.SugaredLogger
 }
 
-// NewQuizHandler creates a new instance of QuizHandler with the provided IQuizService implementation.
 func NewQuizHandler(quizService services.IQuizService, logger *zap.SugaredLogger) *QuizHandler {
 	return &QuizHandler{QuizService: quizService, Logger: logger}
 }
@@ -72,7 +70,7 @@ func (h *QuizHandler) NextQuestion(w http.ResponseWriter, r *http.Request) {
 	session, _ := SessionStore.Get(r, "quiz-session")
 	username, _ := session.Values["username"].(string)
 
-	question, err := h.QuizService.GetNextQuestion(username) // Delegate to the service
+	question, err := h.QuizService.GetNextQuestion(username)
 	if err != nil {
 		if err.Error() == "no more questions" {
 			h.Logger.Info("Quiz complete", zap.String("username", username))

@@ -7,7 +7,6 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-// HashPassword hashes a password using bcrypt.
 func HashPassword(password string) (string, error) {
 	if Logger == nil {
 		panic("Logger is not set for utils")
@@ -28,7 +27,6 @@ func HashPassword(password string) (string, error) {
 	return string(hashed), nil
 }
 
-// ComparePassword compares a hashed password with a plain password.
 func ComparePassword(hashedPassword, plainPassword string) bool {
 	if Logger == nil {
 		panic("Logger is not set for utils")

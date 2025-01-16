@@ -119,7 +119,6 @@ func (s *QuizService) SubmitAnswer(username string, questionIndex, answer int) (
 	return false, nil
 }
 
-// GetResults retrieves the user's final score.
 func (s *QuizService) GetResults(username string) (int, error) {
 	quizMu.Lock()
 	defer quizMu.Unlock()

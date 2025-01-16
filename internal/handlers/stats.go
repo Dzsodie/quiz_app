@@ -9,13 +9,11 @@ import (
 	"go.uber.org/zap"
 )
 
-// StatsHandler handles statistics-related HTTP requests.
 type StatsHandler struct {
 	StatsService services.IStatsService
 	Logger       *zap.SugaredLogger
 }
 
-// NewStatsHandler creates a new instance of StatsHandler with the provided IStatsService implementation.
 func NewStatsHandler(statsService services.IStatsService, logger *zap.Logger) *StatsHandler {
 	return &StatsHandler{StatsService: statsService, Logger: logger.Sugar()}
 }

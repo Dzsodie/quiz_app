@@ -12,7 +12,6 @@ import (
 	"go.uber.org/zap"
 )
 
-// MockStatsService is a mock implementation of the IStatsService interface.
 type MockStatsService struct {
 	mock.Mock
 }
@@ -66,17 +65,13 @@ func TestStatsHandler_GetStats(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Mock GetStats based on the test case
 			mockService.On("GetStats", tt.username).Return(tt.mockReturnMsg, tt.mockReturnErr).Once()
 
-			// Create a new request
 			req, err := http.NewRequest(http.MethodGet, "/quiz/stats", nil)
 			assert.NoError(t, err)
 
-			// Set up a response recorder
 			rr := httptest.NewRecorder()
 
-			// Add the username to the session
 			session, _ := SessionStore.Get(req, "quiz-session")
 			session.Values["username"] = tt.username
 			session.Save(req, rr)

@@ -10,15 +10,12 @@ import (
 	"go.uber.org/zap"
 )
 
-// Global Logger
 var Logger *zap.Logger
 
-// SetLogger sets the logger for utils.
 func SetLogger(logger *zap.Logger) {
 	Logger = logger
 }
 
-// ReadCSV reads questions from a CSV file and returns a slice of questions.
 func ReadCSV(filename string) ([]models.Question, error) {
 	if Logger == nil {
 		return nil, fmt.Errorf("logger is not set")
@@ -47,7 +44,7 @@ func ReadCSV(filename string) ([]models.Question, error) {
 
 	var questions []models.Question
 	for i, record := range records {
-		if i == 0 { // Skip header
+		if i == 0 {
 			continue
 		}
 		if len(record) < 5 {

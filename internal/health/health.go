@@ -9,7 +9,6 @@ import (
 	"go.uber.org/zap"
 )
 
-// HealthStatus holds the status of application components.
 type HealthStatus struct {
 	InMemoryDB string `json:"in_memory_db"`
 	Sessions   string `json:"sessions"`
@@ -23,7 +22,6 @@ type HealthCheck struct {
 	InMemoryDB   map[string]string
 }
 
-// NewHealthCheck initializes the HealthCheck struct.
 func NewHealthCheck(logger *zap.SugaredLogger, sessionStore *sessions.CookieStore, inMemoryDB map[string]string) *HealthCheck {
 	return &HealthCheck{
 		Logger:       logger,
@@ -33,7 +31,6 @@ func NewHealthCheck(logger *zap.SugaredLogger, sessionStore *sessions.CookieStor
 	}
 }
 
-// HealthCheckHandler handles the health check endpoint.
 func (hc *HealthCheck) HealthCheckHandler(w http.ResponseWriter, r *http.Request) {
 	status := HealthStatus{
 		InMemoryDB: hc.checkInMemoryDB(),
@@ -48,7 +45,6 @@ func (hc *HealthCheck) HealthCheckHandler(w http.ResponseWriter, r *http.Request
 }
 
 func (hc *HealthCheck) checkInMemoryDB() string {
-	// Simulate in-memory DB check
 	if _, exists := hc.InMemoryDB["key"]; exists {
 		return "OK"
 	}
@@ -56,7 +52,6 @@ func (hc *HealthCheck) checkInMemoryDB() string {
 }
 
 func (hc *HealthCheck) checkSessionStore() string {
-	// Simulate session store check
 	if hc.SessionStore != nil {
 		return "OK"
 	}
@@ -64,7 +59,6 @@ func (hc *HealthCheck) checkSessionStore() string {
 }
 
 func (hc *HealthCheck) checkMutexState() string {
-	// Simulate mutex check
 	if hc.Mutex.TryLock() {
 		defer hc.Mutex.Unlock()
 		return "Unlocked"

@@ -32,8 +32,7 @@ import (
 // @host localhost:8080
 // @BasePath /
 func main() {
-	// Step 1: Get environment and log file path
-	env := os.Getenv("ENV") // "production" or "development"
+	env := os.Getenv("ENV")
 	if env == "" {
 		env = "development"
 	}
@@ -42,7 +41,6 @@ func main() {
 		logFilePath = "logs/app.log"
 	}
 
-	// Step 2: Initialize logger
 	logger, err := utils.InitializeLogger(env, logFilePath)
 	if err != nil {
 		log.Fatalf("Failed to initialize logger: %v", err)
@@ -50,18 +48,14 @@ func main() {
 	defer logger.Sync()
 	sugar := logger.Sugar()
 
-	// Log the application start message
 	sugar.Infof("Application started in %s mode", env)
 
-	// Set the logger for utils
 	utils.SetLogger(logger)
 
-	// Step 3: Initialize services
 	quizService := &services.QuizService{Logger: logger}
 	authService := &services.AuthService{Logger: logger}
 	statsService := &services.StatsService{Logger: logger}
 
-	// Step 4: Load questions from the CSV file
 	sugar.Info("Loading questions from CSV...")
 	questions, err := utils.ReadCSV("questions.csv")
 	if err != nil {
@@ -69,26 +63,21 @@ func main() {
 	}
 	sugar.Infof("Successfully loaded %d questions", len(questions))
 
-	// Step 4: Load questions
 	quizService.LoadQuestions(questions)
 
-	// Step 5: Initialize handlers
 	quizHandler := handlers.NewQuizHandler(quizService, sugar)
 	authHandler := handlers.NewAuthHandler(authService, sugar)
 	statsHandler := handlers.NewStatsHandler(statsService, logger)
 
-	// Step 6: Configure router and middleware
 	r := mux.NewRouter()
 	handlers.SessionStore = sessions.NewCookieStore([]byte("quiz-secret"))
 	middleware.SetSessionStore(handlers.SessionStore)
 	middleware.SetLogger(logger)
 
-	// Public routes
 	r.HandleFunc("/register", authHandler.RegisterUser).Methods("POST")
 	r.HandleFunc("/login", authHandler.LoginUser).Methods("POST")
 	r.HandleFunc("/questions", quizHandler.GetQuestions).Methods("GET")
 
-	// Protected routes
 	api := r.PathPrefix("/quiz").Subrouter()
 	api.Use(middleware.AuthMiddleware)
 	api.HandleFunc("/start", quizHandler.StartQuiz).Methods("POST")
@@ -97,15 +86,12 @@ func main() {
 	api.HandleFunc("/results", quizHandler.GetResults).Methods("GET")
 	api.HandleFunc("/stats", statsHandler.GetStats).Methods("GET")
 
-	// Swagger routes
 	r.PathPrefix("/swagger/").Handler(httpSwagger.WrapHandler)
 
-	// Health check route
-	inMemoryDB := make(map[string]string) // Simulating in-memory DB
+	inMemoryDB := make(map[string]string)
 	healthChecker := health.NewHealthCheck(sugar, handlers.SessionStore, inMemoryDB)
 	r.HandleFunc("/health", healthChecker.HealthCheckHandler).Methods("GET")
 
-	// Step 7: Start the server
 	sugar.Info("Server is running on port 8080...")
 	sugar.Fatal(http.ListenAndServe(":8080", r))
 }

@@ -9,7 +9,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// Helper function to create a test session store
 func createTestSessionStore() *sessions.CookieStore {
 	store := sessions.NewCookieStore([]byte("test-secret"))
 	store.Options = &sessions.Options{

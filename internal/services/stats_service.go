@@ -22,7 +22,6 @@ func NewStatsService(logger *zap.Logger) *StatsService {
 	return &StatsService{Logger: logger}
 }
 
-// GetStats calculates the user's performance relative to others.
 func (s *StatsService) GetStats(username string) (string, error) {
 	statsMu.Lock()
 	defer statsMu.Unlock()
@@ -35,14 +34,12 @@ func (s *StatsService) GetStats(username string) (string, error) {
 		return "", ErrNoStatsForUser
 	}
 
-	// Collect all scores for ranking
 	allScores := []int{}
 	for _, score := range userScores {
 		allScores = append(allScores, score)
 	}
 	sort.Ints(allScores)
 
-	// Calculate relative performance
 	betterScores := 0
 	for _, score := range allScores {
 		if userScore > score {

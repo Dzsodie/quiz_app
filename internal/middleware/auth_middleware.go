@@ -12,17 +12,14 @@ var (
 	logger       *zap.Logger
 )
 
-// SetSessionStore sets the session store to be used by the middleware.
 func SetSessionStore(store *sessions.CookieStore) {
 	sessionStore = store
 }
 
-// SetLogger sets the logger to be used by the middleware.
 func SetLogger(l *zap.Logger) {
 	logger = l
 }
 
-// AuthMiddleware ensures that a user is authenticated before accessing certain routes.
 func AuthMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if logger == nil {
