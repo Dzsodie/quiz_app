@@ -1,10 +1,12 @@
 package main
 
 import (
+	"flag"
 	"log"
 	"net/http"
 	"os"
 
+	"github.com/Dzsodie/quiz_app/cmd"
 	"github.com/Dzsodie/quiz_app/internal/handlers"
 	"github.com/Dzsodie/quiz_app/internal/health"
 	"github.com/Dzsodie/quiz_app/internal/middleware"
@@ -32,6 +34,12 @@ import (
 // @host localhost:8080
 // @BasePath /
 func main() {
+	// Parse CLI flag to determine the mode
+	cliMode := flag.Bool("cli", false, "Run the application in CLI mode")
+	apiBaseURL := flag.String("apiBaseURL", "http://localhost:8080", "Base URL for the REST API")
+	flag.Parse()
+
+	// Environment and logger setup
 	env := os.Getenv("ENV")
 	if env == "" {
 		env = "development"
@@ -51,9 +59,16 @@ func main() {
 		}
 	}()
 	sugar := logger.Sugar()
-
 	sugar.Infof("Application started in %s mode", env)
 
+	// Start CLI mode if --cli is specified
+	if *cliMode {
+		sugar.Info("Starting in CLI mode...")
+		handlers.StartQuizCLI(*apiBaseURL + "/api")
+		return
+	}
+
+	// Services and questions setup
 	quizService := &services.QuizService{}
 	authService := &services.AuthService{}
 	statsService := &services.StatsService{}
@@ -64,13 +79,14 @@ func main() {
 		sugar.Fatalf("Failed to load questions: %v", err)
 	}
 	sugar.Infof("Successfully loaded %d questions", len(questions))
-
 	quizService.LoadQuestions(questions)
 
+	// Handlers setup
 	quizHandler := handlers.NewQuizHandler(quizService)
 	authHandler := handlers.NewAuthHandler(authService)
 	statsHandler := handlers.NewStatsHandler(statsService)
 
+	// Router setup
 	r := mux.NewRouter()
 	handlers.SessionStore = sessions.NewCookieStore([]byte("quiz-secret"))
 	middleware.SetSessionStore(handlers.SessionStore)
@@ -89,10 +105,14 @@ func main() {
 
 	r.PathPrefix("/swagger/").Handler(httpSwagger.WrapHandler)
 
+	// Health check
 	inMemoryDB := make(map[string]string)
 	healthChecker := health.NewHealthCheck(handlers.SessionStore, inMemoryDB)
 	r.HandleFunc("/health", healthChecker.HealthCheckHandler).Methods("GET")
 
+	// Start the server
 	sugar.Info("Server is running on port 8080...")
 	sugar.Fatal(http.ListenAndServe(":8080", r))
+
+	cmd.Execute()
 }
