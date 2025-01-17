@@ -20,7 +20,6 @@ var (
 	quizMu       sync.Mutex
 )
 
-// GetQuestions returns all loaded questions.
 func (s *QuizService) GetQuestions() ([]models.Question, error) {
 	logger := utils.GetLogger().Sugar()
 	quizMu.Lock()
@@ -34,10 +33,9 @@ func (s *QuizService) GetQuestions() ([]models.Question, error) {
 	return questions, nil
 }
 
-// LoadQuestions initializes the quiz questions.
 func (s *QuizService) LoadQuestions(qs []models.Question) {
 	logger := utils.GetLogger().Sugar()
-	logger.Info("Loading questions into QuizService", zap.Int("question_count", len(questions)))
+	logger.Info("Loading questions into QuizService", zap.Int("question_count", len(qs)))
 
 	quizMu.Lock()
 	defer quizMu.Unlock()
@@ -46,7 +44,6 @@ func (s *QuizService) LoadQuestions(qs []models.Question) {
 	logger.Info("Questions loaded successfully", zap.Int("count", len(qs)))
 }
 
-// StartQuiz initializes a user's quiz session.
 func (s *QuizService) StartQuiz(username string) error {
 	logger := utils.GetLogger().Sugar()
 	quizMu.Lock()
@@ -72,7 +69,6 @@ func (s *QuizService) StartQuiz(username string) error {
 	return nil
 }
 
-// GetNextQuestion retrieves the next question for a user.
 func (s *QuizService) GetNextQuestion(username string) (*models.Question, error) {
 	logger := utils.GetLogger().Sugar()
 	quizMu.Lock()
@@ -86,12 +82,12 @@ func (s *QuizService) GetNextQuestion(username string) (*models.Question, error)
 
 	if progress >= len(questions) {
 		logger.Warn("No more questions available for user", zap.String("username", username))
-		return nil, errors.New("no more questions")
+		return nil, errors.New("quiz complete")
 	}
 
 	question := questions[progress]
-	userProgress[username]++
 	logger.Info("Next question retrieved", zap.String("username", username), zap.Int("progress", userProgress[username]))
+	userProgress[username]++
 	return &question, nil
 }
 
@@ -105,14 +101,15 @@ func (s *QuizService) SubmitAnswer(username string, questionIndex, answer int) (
 		return false, errors.New("question index is out of range")
 	}
 
-	if answer == questions[questionIndex].Answer {
+	correctAnswer := questions[questionIndex].Answer
+	if answer == correctAnswer {
 		userScores[username]++
 		logger.Info("Correct answer submitted", zap.String("username", username), zap.Int("score", userScores[username]))
 		return true, nil
+	} else {
+		logger.Info("Incorrect answer submitted", zap.String("username", username), zap.Int("score", userScores[username]))
+		return false, nil
 	}
-
-	logger.Info("Incorrect answer submitted", zap.String("username", username), zap.Int("score", userScores[username]))
-	return false, nil
 }
 
 func (s *QuizService) GetResults(username string) (int, error) {

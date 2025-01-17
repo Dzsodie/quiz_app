@@ -43,21 +43,23 @@ func ReadCSV(filename string) ([]models.Question, error) {
 		if i == 0 {
 			continue
 		}
-		if len(record) < 5 {
+		if len(record) < 6 {
 			logger.Warn("Invalid record in CSV file", zap.String("filename", filename), zap.Int("line", i+1), zap.Any("record", record))
 			return nil, fmt.Errorf("invalid answer format in record: %v", record)
 		}
-		answer, err := strconv.Atoi(record[4])
-		if err != nil {
+		answer, err := strconv.Atoi(record[5])
+		if err != nil || answer < 1 || answer > 3 {
 			logger.Warn("Invalid answer format in record", zap.String("filename", filename), zap.Int("line", i+1), zap.Any("record", record), zap.Error(err))
 			return nil, fmt.Errorf("invalid answer format in record %v: %w", record, err)
 		}
+
 		questions = append(questions, models.Question{
-			Question: record[0],
-			Options:  record[1:4],
-			Answer:   answer,
+			QuestionID: i,
+			Question:   record[1],
+			Options:    record[2:5],
+			Answer:     answer,
 		})
-		logger.Debug("Processed record", zap.String("filename", filename), zap.Int("line", i+1), zap.Any("question", record[0]))
+		logger.Debug("Processed record", zap.String("filename", filename), zap.Int("line", i+1), zap.Any("question", record[1]))
 	}
 
 	logger.Info("CSV file processed successfully", zap.String("filename", filename), zap.Int("total_questions", len(questions)))

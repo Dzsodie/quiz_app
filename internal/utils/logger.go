@@ -48,14 +48,6 @@ func InitializeLogger(env string, logFilePath string) (*zap.Logger, error) {
 		level,
 	)
 
-	if env != "production" {
-		consoleWriter := zapcore.Lock(os.Stdout)
-		core = zapcore.NewTee(
-			core,
-			zapcore.NewCore(zapcore.NewConsoleEncoder(encoderConfig), consoleWriter, level),
-		)
-	}
-
 	l := zap.New(core, zap.AddCaller(), zap.AddStacktrace(zapcore.ErrorLevel))
 
 	logger = l
