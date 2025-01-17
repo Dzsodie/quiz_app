@@ -62,10 +62,10 @@ A Go-based quiz application that supports user registration, login, and quiz fun
 
 ## CLI commands
 
-- quiz
-- start
-- score
-- exit
+- quiz : Initiate the quiz application.
+- start : Start the quiz.
+- score : View user score and stats.
+- exit : Quit the quiz app.
 
 ## Usage through REST API
 

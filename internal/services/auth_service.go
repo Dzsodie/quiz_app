@@ -6,6 +6,7 @@ import (
 
 	"github.com/Dzsodie/quiz_app/internal/models"
 	"github.com/Dzsodie/quiz_app/internal/utils"
+	"github.com/gorilla/sessions"
 	"go.uber.org/zap"
 )
 
@@ -14,7 +15,18 @@ var (
 	users  = make(map[string]models.User)
 )
 
-type AuthService struct{}
+type AuthService struct {
+	store *sessions.CookieStore
+}
+
+func (a *AuthService) GetSession() (*sessions.Session, error) {
+
+	session, err := a.store.Get(nil, "session-name")
+	if err != nil {
+		return nil, errors.New("failed to get session")
+	}
+	return session, nil
+}
 
 func (s *AuthService) RegisterUser(username, password string) error {
 	logger := utils.GetLogger().Sugar()

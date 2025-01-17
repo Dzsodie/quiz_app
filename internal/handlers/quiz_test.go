@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"bytes"
-
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -54,7 +53,7 @@ func TestQuizHandlerGetQuestions(t *testing.T) {
 	quizHandler := NewQuizHandler(mockService)
 
 	questions := []models.Question{
-		{Question: "What is 2+2?", Options: []string{"3", "4", "5"}, Answer: 1},
+		{QuestionID: 0, Question: "What is 2+2?", Options: []string{"3", "4", "5"}, Answer: 1},
 	}
 
 	mockService.On("GetQuestions").Return(questions, nil)
@@ -66,7 +65,7 @@ func TestQuizHandlerGetQuestions(t *testing.T) {
 	quizHandler.GetQuestions(rr, req)
 
 	assert.Equal(t, http.StatusOK, rr.Code)
-	assert.JSONEq(t, `[{"question":"What is 2+2?","options":["3","4","5"],"answer":1}]`, rr.Body.String())
+	assert.JSONEq(t, `[{"question_id":0,"question":"What is 2+2?","options":["3","4","5"],"answer":1}]`, rr.Body.String())
 	mockService.AssertExpectations(t)
 }
 
@@ -110,13 +109,15 @@ func TestQuizHandlerNextQuestion(t *testing.T) {
 		t.Errorf("Failed to save session: %v", err)
 	}
 
-	question := &models.Question{Question: "What is 2+2?", Options: []string{"3", "4", "5"}, Answer: 1}
+	question := &models.Question{
+		QuestionID: 0, Question: "What is 2+2?", Options: []string{"3", "4", "5"}, Answer: 1,
+	}
 	mockService.On("GetNextQuestion", "testuser").Return(question, nil)
 
 	quizHandler.NextQuestion(rr, req)
 
 	assert.Equal(t, http.StatusOK, rr.Code)
-	assert.JSONEq(t, `{"question":"What is 2+2?","options":["3","4","5"],"answer":1}`, rr.Body.String())
+	assert.JSONEq(t, `{"question_id":0,"question":"What is 2+2?","options":["3","4","5"],"answer":1}`, rr.Body.String())
 	mockService.AssertExpectations(t)
 }
 
@@ -138,7 +139,7 @@ func TestQuizHandlerSubmitAnswer(t *testing.T) {
 	assert.NoError(t, err, "Failed to save session")
 
 	questions := []models.Question{
-		{Question: "What is 2+2?", Options: []string{"3", "4", "5"}, Answer: 1},
+		{QuestionID: 0, Question: "What is 2+2?", Options: []string{"3", "4", "5"}, Answer: 1},
 	}
 	mockService.On("GetQuestions").Return(questions, nil).Once()
 	mockService.On("SubmitAnswer", "testuser", 0, 1).Return(true, nil).Once()
