@@ -10,7 +10,7 @@
 ![GoAccess](https://img.shields.io/badge/GoAccess-Log%20Analyzer-darkgreen?style=for-the-badge&logo=go)
 
 
-A Go-based quiz application that supports user registration, login, and quiz functionalities. This app is built with the Gorilla web toolkit and includes Swagger documentation for easy API interaction.
+A Go-based quiz application that supports user registration, login, and quiz functionalities. This app is built with the Gorilla web toolkit and includes Swagger for easy API interaction and testing.
 
 ## Features
 
@@ -55,12 +55,16 @@ A Go-based quiz application that supports user registration, login, and quiz fun
     ```bash
     go mod tidy
     ```
-9. Run the application:
+9. Run the application for using it with Postman only:
     ```bash
     go run main.go
     ```
+10. Run the application in CLI game mode:
+    ```bash
+    go run main.go --cli
+    ```
 
-## CLI commands
+## Usage of CLI commands outside game mode
 
 - quiz : Initiate the quiz application.
 - start : Start the quiz.
@@ -103,7 +107,7 @@ Swagger documentation is available at: http://localhost:8080/swagger/index.html
 1. Run all of the unit tests with this command
     ```bash
     go build
-    go test ./
+    go test ./...
     ```
 2. Run unit tests for specific folder
     ```bash
@@ -112,7 +116,7 @@ Swagger documentation is available at: http://localhost:8080/swagger/index.html
     ```
 3. Test coverage can be seen with the following command
     ```bash
-    go test -cover ./
+    go test -cover ./...
 
 ## Logging
 
@@ -134,7 +138,7 @@ Zap logging is used in the quiz app.
     ```bash
     goaccess --version
     ```
-3. Configure the log format according to your needs in the app and then in the goaccess.conf file.
+3. Configure the log format according to your needs in the app and then in the goaccess.conf file at `/usr/local/Cellar/goaccess/1.9.3/etc/goaccess`.
     ```bash
     time-format %H:%M:%S
     date-format %d/%b/%Y
@@ -153,9 +157,10 @@ Zap logging is used in the quiz app.
 
 ## Future enhancement
 
-- Database connection
-- Containerization
-- Deploying to Cloud 
+- Enhance the game play with randomized questions with keeping track of already chosen questions.
+- Adding database connection for persistency.
+- Containerize with docker for portability.
+- Deploying to cloud for easier distribution, monitoring and low cost 7/24 99.9% availability.
 
 ## License
 

@@ -267,9 +267,17 @@ func fetchStats(client *http.Client, apiBaseURL, sessionToken string) {
 }
 
 func askPlayAgain(reader *bufio.Reader) bool {
-	fmt.Println("Do you want to play again? (yes/no)")
-	response := readInput(reader)
-	return strings.TrimSpace(strings.ToLower(response)) == "yes"
+	fmt.Println("Do you want to play again? (yes/y/no/n)")
+	response := strings.TrimSpace(strings.ToLower(readInput(reader)))
+
+	if response == "yes" || response == "y" {
+		return true
+	} else if response == "no" || response == "n" {
+		return false
+	} else {
+		fmt.Println("Invalid input. Please enter yes, y, no, or n.")
+		return askPlayAgain(reader)
+	}
 }
 
 func readInput(reader *bufio.Reader) string {
