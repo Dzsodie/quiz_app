@@ -3,22 +3,30 @@ package services
 import (
 	"testing"
 
+	"github.com/Dzsodie/quiz_app/internal/database"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestStatsServiceGetStats(t *testing.T) {
-	s := &StatsService{}
+	db := database.NewMemoryDB()
+	db.AddUser(database.User{Username: "testuser1", Score: 10})
+	db.AddUser(database.User{Username: "testuser2", Score: 20})
+	db.AddUser(database.User{Username: "testuser3", Score: 15})
 
-	userScores["testuser1"] = 10
-	userScores["testuser2"] = 20
-	userScores["testuser3"] = 15
+	service := NewStatsService(db)
 
-	stats, err := s.GetStats("testuser1")
-	assert.NoError(t, err, "expected no error when fetching stats for an existing user")
-	assert.Contains(t, stats, "Your score is 10", "expected stats to include user's score")
-	assert.Contains(t, stats, "better than other users", "expected stats to include relative performance")
+	t.Run("Valid user stats retrieval", func(t *testing.T) {
+		_, stats, err := service.GetStats("testuser1")
 
-	_, err = s.GetStats("nonexistent")
-	assert.Error(t, err, "expected error when fetching stats for a non-existent user")
-	assert.Equal(t, ErrNoStatsForUser, err, "unexpected error message")
+		assert.NoError(t, err, "expected no error for a valid user")
+		assert.Contains(t, stats, "Your score is 10", "expected stats to include the correct score")
+		assert.Contains(t, stats, "better than other users", "expected stats to include relative performance")
+	})
+
+	t.Run("Non-existent user", func(t *testing.T) {
+		_, _, err := service.GetStats("nonexistent")
+
+		assert.Error(t, err, "expected error for a non-existent user")
+		assert.Equal(t, ErrNoStatsForUser, err, "unexpected error message for non-existent user")
+	})
 }

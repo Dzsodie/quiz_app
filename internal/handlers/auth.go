@@ -7,8 +7,11 @@ import (
 	"github.com/Dzsodie/quiz_app/internal/models"
 	"github.com/Dzsodie/quiz_app/internal/services"
 	"github.com/Dzsodie/quiz_app/internal/utils"
+	"github.com/gorilla/sessions"
 	"go.uber.org/zap"
 )
+
+var SessionStore = sessions.NewCookieStore([]byte("your-secret-key"))
 
 type AuthHandler struct {
 	AuthService services.IAuthService

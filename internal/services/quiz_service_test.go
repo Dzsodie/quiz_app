@@ -50,7 +50,7 @@ func TestQuizServiceGetNextQuestion(t *testing.T) {
 
 	_, err = s.GetNextQuestion("testuser")
 	assert.Error(t, err, "expected error when no more questions are available")
-	assert.Equal(t, "no more questions", err.Error(), "unexpected error message")
+	assert.Equal(t, "quiz complete", err.Error(), "unexpected error message")
 }
 
 func TestQuizServiceSubmitAnswer(t *testing.T) {

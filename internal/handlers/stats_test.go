@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/Dzsodie/quiz_app/internal/models"
 	"github.com/Dzsodie/quiz_app/internal/services"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -15,9 +16,11 @@ type MockStatsService struct {
 	mock.Mock
 }
 
-func (m *MockStatsService) GetStats(username string) (string, error) {
+// Updated to match the StatsService.GetStats method signature
+func (m *MockStatsService) GetStats(username string) ([]models.User, string, error) {
 	args := m.Called(username)
-	return args.String(0), args.Error(1)
+	users, _ := args.Get(0).([]models.User) // Convert the first return value to []models.User
+	return users, args.String(1), args.Error(2)
 }
 
 func TestStatsHandlerGetStats(t *testing.T) {
@@ -62,18 +65,16 @@ func TestStatsHandlerGetStats(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			mockService.On("GetStats", tt.username).Return(tt.mockReturnMsg, tt.mockReturnErr).Once()
+			mockService.On("GetStats", tt.username).Return(nil, tt.mockReturnMsg, tt.mockReturnErr).Once()
 
 			req, err := http.NewRequest(http.MethodGet, "/quiz/stats", nil)
 			assert.NoError(t, err)
 
 			rr := httptest.NewRecorder()
-
 			session, _ := SessionStore.Get(req, "quiz-session")
 			session.Values["username"] = tt.username
-			if err := session.Save(req, rr); err != nil {
-				t.Errorf("Failed to save session: %v", err)
-			}
+			err = session.Save(req, rr)
+			assert.NoError(t, err, "Failed to save session")
 
 			statsHandler.GetStats(rr, req)
 

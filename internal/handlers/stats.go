@@ -37,7 +37,7 @@ func (h *StatsHandler) GetStats(w http.ResponseWriter, r *http.Request) {
 
 	logger.Info("Processing stats request", zap.String("username", username))
 
-	statsMessage, err := h.StatsService.GetStats(username)
+	_, statsMessage, err := h.StatsService.GetStats(username)
 	if err != nil {
 		if errors.Is(err, services.ErrNoStatsForUser) {
 			logger.Warn("No statistics for user", zap.String("username", username))
@@ -48,8 +48,18 @@ func (h *StatsHandler) GetStats(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, `{"message":"Internal server error"}`, http.StatusInternalServerError)
 		return
 	}
+
 	logger.Info("Stats retrieved successfully", zap.String("username", username))
-	if err := json.NewEncoder(w).Encode(map[string]string{"message": statsMessage}); err != nil {
-		logger.Warn("Failed to encode score response: %v", err)
+	response := map[string]string{"message": statsMessage}
+	statsJSON, err := json.Marshal(response)
+	if err != nil {
+		logger.Error("Failed to marshal stats message", zap.Error(err))
+		http.Error(w, `{"message":"Internal server error"}`, http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if _, err := w.Write(statsJSON); err != nil {
+		logger.Warn("Failed to write stats response", zap.Error(err))
 	}
 }

@@ -71,7 +71,7 @@ var scoreCmd = &cobra.Command{
 			return
 		}
 		username := session.Values["username"].(string)
-		stats, err := statsService.GetStats(username)
+		stats, _, err := statsService.GetStats(username)
 		if err != nil {
 			fmt.Printf("Error retrieving stats: %v\n", err)
 			return

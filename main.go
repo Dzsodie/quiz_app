@@ -8,6 +8,7 @@ import (
 
 	"github.com/Dzsodie/quiz_app/cmd"
 	"github.com/Dzsodie/quiz_app/config"
+	"github.com/Dzsodie/quiz_app/internal/database"
 	"github.com/Dzsodie/quiz_app/internal/handlers"
 	"github.com/Dzsodie/quiz_app/internal/health"
 	"github.com/Dzsodie/quiz_app/internal/middleware"
@@ -21,7 +22,12 @@ import (
 	httpSwagger "github.com/swaggo/http-swagger"
 )
 
-func main() {
+type QuizApp struct {
+	DB *database.MemoryDB
+}
+
+// Run starts the QuizApp
+func (app *QuizApp) Run() {
 	cliMode := flag.Bool("cli", false, "Run the application in CLI mode")
 	flag.Parse()
 
@@ -50,6 +56,17 @@ func main() {
 	// Start REST API server
 	setupRESTAPIServer(cfg, sugar, false)
 	cmd.Execute()
+}
+
+func newQuizApp(db *database.MemoryDB) *QuizApp {
+	return &QuizApp{DB: db}
+}
+
+func main() {
+	// Initialize the in-memory database
+	memoryDB := database.NewMemoryDB()
+	app := newQuizApp(memoryDB)
+	app.Run()
 }
 
 // setupRESTAPIServer configures and starts the REST API server
