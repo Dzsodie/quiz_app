@@ -5,12 +5,19 @@ import (
 	"sync"
 	"time"
 
+	"github.com/Dzsodie/quiz_app/internal/database"
 	"github.com/Dzsodie/quiz_app/internal/models"
 	"github.com/Dzsodie/quiz_app/internal/utils"
 	"go.uber.org/zap"
 )
 
-type QuizService struct{}
+type QuizService struct {
+	DB *database.MemoryDB
+}
+
+func NewQuizService(db *database.MemoryDB) *QuizService {
+	return &QuizService{DB: db}
+}
 
 var (
 	questions    []models.Question

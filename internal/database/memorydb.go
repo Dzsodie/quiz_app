@@ -27,6 +27,9 @@ func (db *MemoryDB) AddUser(user User) error {
 }
 
 func (db *MemoryDB) GetUser(username string) (User, error) {
+	if db == nil || db.users == nil {
+		return User{}, errors.New("database not initialized")
+	}
 	db.mu.RLock()
 	defer db.mu.RUnlock()
 

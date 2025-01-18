@@ -36,7 +36,9 @@ func (s *StatsService) GetStats(username string) ([]models.User, string, error) 
 	}
 
 	allUsers := s.DB.GetAllUsers()
+	logger.Debug("All users", zap.Any("users", allUsers))
 	allScores := make([]int, len(allUsers))
+	logger.Debug("All scores", zap.Any("scores", allScores))
 	for i, user := range allUsers {
 		allScores[i] = user.Score
 	}
@@ -48,8 +50,9 @@ func (s *StatsService) GetStats(username string) ([]models.User, string, error) 
 			betterScores++
 		}
 	}
+	logger.Debug("Better scores", zap.Int("better_scores", betterScores))
 	percentage := (float64(betterScores) / float64(len(allScores))) * 100
-
+	logger.Debug("Percentage", zap.Float64("percentage", percentage))
 	// Create the response message
 	message := fmt.Sprintf(
 		"Your score is %d and that is %.2f%% better than other users' scores.",

@@ -46,15 +46,16 @@ func (app *QuizApp) Run() {
 
 	if *cliMode {
 		sugar.Info("Starting Quiz in CLI mode...")
-		setupRESTAPIServer(cfg, sugar, true)
-		handlers.StartQuizCLI(cfg.APIBaseURL)
+		setupRESTAPIServer(cfg, sugar, true, app.DB)
+		handler := handlers.NewStartQuizCliHandler(&services.StartQuizCLIService{DB: app.DB})
+		handler.StartQuizCLI(cfg.APIBaseURL, app.DB)
 		return
 	}
 
 	sugar.Infof("Application started in %s mode", cfg.Environment)
 
 	// Start REST API server
-	setupRESTAPIServer(cfg, sugar, false)
+	setupRESTAPIServer(cfg, sugar, false, app.DB)
 	cmd.Execute()
 }
 
@@ -65,16 +66,21 @@ func newQuizApp(db *database.MemoryDB) *QuizApp {
 func main() {
 	// Initialize the in-memory database
 	memoryDB := database.NewMemoryDB()
+	// Populate the database with some test data
+	memoryDB.AddUser(database.User{Username: "testuser1", Score: 10})
+	memoryDB.AddUser(database.User{Username: "testuser2", Score: 20})
+	memoryDB.AddUser(database.User{Username: "testuser3", Score: 15})
+
 	app := newQuizApp(memoryDB)
 	app.Run()
 }
 
 // setupRESTAPIServer configures and starts the REST API server
-func setupRESTAPIServer(cfg config.Config, sugar *zap.SugaredLogger, suppressLogs bool) {
+func setupRESTAPIServer(cfg config.Config, sugar *zap.SugaredLogger, suppressLogs bool, db *database.MemoryDB) {
 	// Services and handlers setup
-	quizService := &services.QuizService{}
-	authService := &services.AuthService{}
-	statsService := &services.StatsService{}
+	quizService := &services.QuizService{DB: db}
+	authService := &services.AuthService{DB: db}
+	statsService := &services.StatsService{DB: db}
 
 	sugar.Info("Loading questions from CSV...")
 	questions, err := utils.ReadCSV(cfg.QuestionsFilePath)

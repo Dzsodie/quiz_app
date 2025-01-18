@@ -4,6 +4,7 @@ import (
 	"errors"
 	"sync"
 
+	"github.com/Dzsodie/quiz_app/internal/database"
 	"github.com/Dzsodie/quiz_app/internal/models"
 	"github.com/Dzsodie/quiz_app/internal/utils"
 	"github.com/gorilla/sessions"
@@ -17,6 +18,11 @@ var (
 
 type AuthService struct {
 	store *sessions.CookieStore
+	DB    *database.MemoryDB
+}
+
+func NewAuthService(db *database.MemoryDB) *AuthService {
+	return &AuthService{DB: db}
 }
 
 func (a *AuthService) GetSession() (*sessions.Session, error) {

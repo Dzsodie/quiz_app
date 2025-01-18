@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/Dzsodie/quiz_app/internal/database"
 	"github.com/Dzsodie/quiz_app/internal/handlers"
 	"github.com/Dzsodie/quiz_app/internal/services"
 	"github.com/Dzsodie/quiz_app/internal/utils"
@@ -56,7 +57,9 @@ var startCmd = &cobra.Command{
 		}
 		quizService.LoadQuestions(questions)
 		apiBaseURL := "http://localhost:8080/api"
-		handlers.StartQuizCLI(apiBaseURL)
+		DB := database.NewMemoryDB()
+		handler := handlers.NewStartQuizCliHandler(&services.StartQuizCLIService{DB: DB})
+		handler.StartQuizCLI(apiBaseURL, DB)
 	},
 }
 
