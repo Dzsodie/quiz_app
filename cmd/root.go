@@ -5,8 +5,10 @@ package cmd
 
 import (
 	"fmt"
+	"net/http"
 	"os"
 
+	"github.com/Dzsodie/quiz_app/config"
 	"github.com/Dzsodie/quiz_app/internal/database"
 	"github.com/Dzsodie/quiz_app/internal/handlers"
 	"github.com/Dzsodie/quiz_app/internal/services"
@@ -17,6 +19,7 @@ import (
 var quizService = &services.QuizService{}
 var authService = &services.AuthService{}
 var statsService = &services.StatsService{}
+var cfg = config.LoadConfig()
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -58,7 +61,7 @@ var startCmd = &cobra.Command{
 		quizService.LoadQuestions(questions)
 		apiBaseURL := "http://localhost:8080/api"
 		DB := database.NewMemoryDB()
-		handler := handlers.NewStartQuizCliHandler(&services.StartQuizCLIService{DB: DB})
+		handler := handlers.NewStartQuizCliHandler(services.NewStartQuizCLIService(cfg.APIBaseURL, &http.Client{}, DB))
 		handler.StartQuizCLI(apiBaseURL, DB)
 	},
 }

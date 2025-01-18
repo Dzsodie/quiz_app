@@ -23,7 +23,7 @@ type StartQuizCLIService struct {
 }
 
 func NewStartQuizCLIService(apiBaseURL string, client *http.Client, db *database.MemoryDB) *StartQuizCLIService {
-	return &StartQuizCLIService{ApiBaseURL: apiBaseURL, HttpClient: client, DB: db}
+	return &StartQuizCLIService{ApiBaseURL: apiBaseURL, HttpClient: &http.Client{}, DB: db}
 }
 
 func (s *StartQuizCLIService) RegisterUser(username, password string) (string, error) {

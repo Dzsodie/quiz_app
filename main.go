@@ -47,7 +47,7 @@ func (app *QuizApp) Run() {
 	if *cliMode {
 		sugar.Info("Starting Quiz in CLI mode...")
 		setupRESTAPIServer(cfg, sugar, true, app.DB)
-		handler := handlers.NewStartQuizCliHandler(&services.StartQuizCLIService{DB: app.DB})
+		handler := handlers.NewStartQuizCliHandler(services.NewStartQuizCLIService(cfg.APIBaseURL, &http.Client{}, app.DB))
 		handler.StartQuizCLI(cfg.APIBaseURL, app.DB)
 		return
 	}
