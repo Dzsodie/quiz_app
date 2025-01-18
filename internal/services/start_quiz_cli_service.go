@@ -30,14 +30,20 @@ func (s *StartQuizCLIService) RegisterUser(username, password string) (string, e
 	payload := map[string]string{"username": username, "password": password}
 	body, _ := json.Marshal(payload)
 	resp, err := s.HttpClient.Post(s.ApiBaseURL+"/register", "application/json", bytes.NewBuffer(body))
-	if err != nil || resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("registration failed")
-	}
-	token, err := extractSessionToken(resp)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("registration failed: %v", err)
 	}
-	return token, nil
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusCreated || resp.StatusCode == http.StatusOK {
+		token, err := extractSessionToken(resp)
+		if err != nil {
+			return "", err
+		}
+		return token, nil
+	}
+
+	return "", fmt.Errorf("registration failed with status: %d", resp.StatusCode)
 }
 
 func (s *StartQuizCLIService) LoginUser(username, password string) (string, error) {

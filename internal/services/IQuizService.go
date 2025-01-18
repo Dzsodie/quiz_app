@@ -14,4 +14,6 @@ type IQuizService interface {
 	SubmitAnswer(username string, questionIndex, answer int) (bool, error)
 
 	GetResults(username string) (int, error)
+
+	GetStats(username string) ([]models.User, string, error)
 }

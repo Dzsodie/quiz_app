@@ -18,7 +18,6 @@ import (
 
 var quizService = &services.QuizService{}
 var authService = &services.AuthService{}
-var statsService = &services.StatsService{}
 var cfg = config.LoadConfig()
 
 // rootCmd represents the base command when called without any subcommands
@@ -77,7 +76,7 @@ var scoreCmd = &cobra.Command{
 			return
 		}
 		username := session.Values["username"].(string)
-		stats, _, err := statsService.GetStats(username)
+		stats, _, err := quizService.GetStats(username)
 		if err != nil {
 			fmt.Printf("Error retrieving stats: %v\n", err)
 			return

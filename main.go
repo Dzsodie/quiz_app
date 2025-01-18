@@ -80,7 +80,6 @@ func setupRESTAPIServer(cfg config.Config, sugar *zap.SugaredLogger, suppressLog
 	// Services and handlers setup
 	quizService := &services.QuizService{DB: db}
 	authService := &services.AuthService{DB: db}
-	statsService := &services.StatsService{DB: db}
 
 	sugar.Info("Loading questions from CSV...")
 	questions, err := utils.ReadCSV(cfg.QuestionsFilePath)
@@ -92,7 +91,6 @@ func setupRESTAPIServer(cfg config.Config, sugar *zap.SugaredLogger, suppressLog
 
 	quizHandler := handlers.NewQuizHandler(quizService)
 	authHandler := handlers.NewAuthHandler(authService)
-	statsHandler := handlers.NewStatsHandler(statsService)
 
 	r := mux.NewRouter()
 	handlers.SessionStore = sessions.NewCookieStore([]byte(cfg.SessionSecret))
@@ -108,8 +106,7 @@ func setupRESTAPIServer(cfg config.Config, sugar *zap.SugaredLogger, suppressLog
 	api.HandleFunc("/next", quizHandler.NextQuestion).Methods("GET")
 	api.HandleFunc("/submit", quizHandler.SubmitAnswer).Methods("POST")
 	api.HandleFunc("/results", quizHandler.GetResults).Methods("GET")
-	api.HandleFunc("/stats", statsHandler.GetStats).Methods("GET")
-
+	api.HandleFunc("/stats", quizHandler.GetStats).Methods("GET")
 	r.PathPrefix("/swagger/").Handler(httpSwagger.WrapHandler)
 
 	// Health check
