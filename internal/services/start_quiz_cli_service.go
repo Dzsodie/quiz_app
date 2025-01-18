@@ -27,8 +27,14 @@ func NewStartQuizCLIService(apiBaseURL string, client *http.Client, db *database
 }
 
 func (s *StartQuizCLIService) RegisterUser(username, password string) (string, error) {
-	payload := map[string]string{"username": username, "password": password}
+	payload := map[string]interface{}{
+		"username": username,
+		"password": password,
+		"progress": []int{},
+		"score":    0,
+	}
 	body, _ := json.Marshal(payload)
+
 	resp, err := s.HttpClient.Post(s.ApiBaseURL+"/register", "application/json", bytes.NewBuffer(body))
 	if err != nil {
 		return "", fmt.Errorf("registration failed: %v", err)
@@ -36,28 +42,51 @@ func (s *StartQuizCLIService) RegisterUser(username, password string) (string, e
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusCreated || resp.StatusCode == http.StatusOK {
-		token, err := extractSessionToken(resp)
-		if err != nil {
-			return "", err
+		var responsePayload map[string]string
+		if err := json.NewDecoder(resp.Body).Decode(&responsePayload); err != nil {
+			return "", fmt.Errorf("failed to parse response: %v", err)
 		}
-		return token, nil
+
+		userID, ok := responsePayload["userID"]
+		if !ok {
+			return "", fmt.Errorf("response does not contain userID")
+		}
+
+		return userID, nil
 	}
 
-	return "", fmt.Errorf("registration failed with status: %d", resp.StatusCode)
+	bodyBytes, _ := io.ReadAll(resp.Body)
+	return "", fmt.Errorf("registration failed: %s", string(bodyBytes))
 }
 
 func (s *StartQuizCLIService) LoginUser(username, password string) (string, error) {
 	payload := map[string]string{"username": username, "password": password}
 	body, _ := json.Marshal(payload)
+
 	resp, err := s.HttpClient.Post(s.ApiBaseURL+"/login", "application/json", bytes.NewBuffer(body))
-	if err != nil || resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("login failed")
-	}
-	token, err := extractSessionToken(resp)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("login failed: %v", err)
 	}
-	return token, nil
+	defer resp.Body.Close()
+
+	// Check the response status
+	if resp.StatusCode == http.StatusOK {
+		var responsePayload map[string]string
+		if err := json.NewDecoder(resp.Body).Decode(&responsePayload); err != nil {
+			return "", fmt.Errorf("failed to parse response: %v", err)
+		}
+
+		sessionToken, ok := responsePayload["session_token"]
+		if !ok {
+			return "", fmt.Errorf("response does not contain session_token")
+		}
+
+		return sessionToken, nil
+	}
+
+	// Handle unexpected response status
+	bodyBytes, _ := io.ReadAll(resp.Body)
+	return "", fmt.Errorf("login failed: %s", string(bodyBytes))
 }
 
 func (s *StartQuizCLIService) StartQuiz(sessionToken string) error {

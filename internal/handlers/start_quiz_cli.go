@@ -8,6 +8,7 @@ import (
 
 	"github.com/Dzsodie/quiz_app/internal/database"
 	"github.com/Dzsodie/quiz_app/internal/services"
+	"github.com/Dzsodie/quiz_app/internal/utils"
 )
 
 type StartQuizCLIHandler struct {
@@ -19,6 +20,7 @@ func NewStartQuizCliHandler(startQuizCliService services.IStartQuizCLIService) *
 }
 
 func (h *StartQuizCLIHandler) StartQuizCLI(APIBaseURL string, db *database.MemoryDB) {
+	logger := utils.GetLogger().Sugar()
 	reader := bufio.NewReader(os.Stdin)
 	fmt.Println("Welcome to the CLI Quiz App!")
 
@@ -36,12 +38,14 @@ func (h *StartQuizCLIHandler) StartQuizCLI(APIBaseURL string, db *database.Memor
 				break
 			}
 		} else {
+			logger.Warn("Invalid choice", "choice", choice)
 			fmt.Println("Invalid choice. Please try again.")
 		}
 	}
 }
 
 func (h *StartQuizCLIHandler) handleRegister(reader *bufio.Reader) {
+	logger := utils.GetLogger().Sugar()
 	fmt.Println("Register a new account.")
 	fmt.Print("Enter a username: ")
 	username := readInput(reader)
@@ -49,15 +53,19 @@ func (h *StartQuizCLIHandler) handleRegister(reader *bufio.Reader) {
 	fmt.Print("Enter a password: ")
 	password := readInput(reader)
 
-	_, err := h.Service.RegisterUser(username, password)
+	userID, err := h.Service.RegisterUser(username, password)
 	if err != nil {
-		fmt.Println("Registration failed. Try again.")
+		fmt.Printf("Registration failed: %v\n", err)
+		logger.Error("User registration failed. ", "error: ", err, "username: ", username, "password: ", password)
 		return
 	}
-	fmt.Println("Registration successful! Please login to continue.")
+
+	fmt.Printf("Registration successful! Your user ID is: %s\n", userID)
+	logger.Info("User registered successfully! ", "username: ", username, "userID: ", userID)
 }
 
 func (h *StartQuizCLIHandler) handleLogin(reader *bufio.Reader) string {
+	logger := utils.GetLogger().Sugar()
 	fmt.Print("Enter your username: ")
 	username := readInput(reader)
 
@@ -66,11 +74,13 @@ func (h *StartQuizCLIHandler) handleLogin(reader *bufio.Reader) string {
 
 	sessionToken, err := h.Service.LoginUser(username, password)
 	if err != nil {
-		fmt.Println("Login failed. Try again.")
+		fmt.Printf("Login failed: %v\n", err)
+		logger.Error("Login failed", "error", err, "username", username, "password", password)
 		return ""
 	}
 
 	fmt.Println("Login successful!")
+	logger.Info("User logged in successfully", "username", username, "session_token", sessionToken)
 	return sessionToken
 }
 
