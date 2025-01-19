@@ -8,7 +8,6 @@ import (
 	"net/http"
 
 	"github.com/Dzsodie/quiz_app/internal/database"
-	"github.com/Dzsodie/quiz_app/internal/models"
 	"github.com/Dzsodie/quiz_app/internal/utils"
 	"github.com/google/uuid"
 	"github.com/gorilla/sessions"
@@ -17,7 +16,6 @@ import (
 
 var (
 	authMu sync.Mutex
-	users  = make(map[string]models.User)
 )
 
 type AuthService struct {
@@ -100,8 +98,8 @@ func (s *AuthService) GetUserID(username string) (string, error) {
 	authMu.Lock()
 	defer authMu.Unlock()
 
-	user, exists := users[username]
-	if !exists {
+	user, err := s.DB.GetUser(username)
+	if err != nil {
 		return "", errors.New("user not found")
 	}
 	return user.UserID, nil
@@ -110,15 +108,36 @@ func (s *AuthService) GetUserID(username string) (string, error) {
 func (s *AuthService) GetSession(r *http.Request) (*sessions.Session, error) {
 	logger := utils.GetLogger().Sugar()
 
+	// Validate session store
 	if err := utils.ValidateSessionStore(); err != nil {
 		logger.Error("Session store not initialized", zap.Error(err))
 		return nil, errors.New("session store is not initialized")
 	}
 
+	// Retrieve session
 	session, err := utils.SessionStore.Get(r, "quiz-session")
 	if err != nil {
-		logger.Warn("Failed to get session", zap.Error(err))
-		return nil, errors.New("failed to get session")
+		logger.Warn("Failed to retrieve session", zap.Error(err))
+		return nil, errors.New("failed to retrieve session")
+	}
+
+	// Validate session values
+	username, ok := session.Values["username"].(string)
+	if !ok || username == "" {
+		logger.Warn("Invalid session: missing or invalid username")
+		return nil, errors.New("invalid session: missing or invalid username")
+	}
+
+	userID, ok := session.Values["userID"].(string)
+	if !ok || userID == "" {
+		logger.Warn("Invalid session: missing or invalid userID")
+		return nil, errors.New("invalid session: missing or invalid userID")
+	}
+
+	sessionToken, ok := session.Values["session_token"].(string)
+	if !ok || sessionToken == "" {
+		logger.Warn("Invalid session: missing or invalid session_token")
+		return nil, errors.New("invalid session: missing or invalid session_token")
 	}
 
 	logger.Debug("Session retrieved successfully", zap.Any("session_values", session.Values))
