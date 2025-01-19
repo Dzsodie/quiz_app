@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"log"
+	"net/http"
 	"sync"
 
 	"github.com/Dzsodie/quiz_app/config"
@@ -17,22 +18,19 @@ var (
 
 func InitializeSessionStore() {
 	sessionStoreOnce.Do(func() {
-		// Load session secret from configuration
 		config := config.LoadConfig()
 		if config.SessionSecret == "" {
 			log.Fatal("Session secret is not set in the configuration")
 		}
 
-		// Log the secret for debugging
-		logger := GetLogger().Sugar()
-		logger.Debug("Initializing SessionStore with secret: ", config.SessionSecret)
-
-		// Initialize the session store with the secret key
 		SessionStore = sessions.NewCookieStore([]byte(config.SessionSecret))
 		SessionStore.Options = &sessions.Options{
 			Path:     "/",
-			MaxAge:   3600, // 1 hour
+			Domain:   "localhost", // Adjust for deployment
+			MaxAge:   3600,        // 1 hour
 			HttpOnly: true,
+			Secure:   false, // Set to true if using HTTPS
+			SameSite: http.SameSiteStrictMode,
 		}
 	})
 }

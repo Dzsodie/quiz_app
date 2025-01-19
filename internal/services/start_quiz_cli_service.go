@@ -9,17 +9,11 @@ import (
 	"net/http/cookiejar"
 	"net/url"
 
-	"go.uber.org/zap"
-
 	"github.com/Dzsodie/quiz_app/internal/database"
+	"github.com/Dzsodie/quiz_app/internal/models"
 	"github.com/Dzsodie/quiz_app/internal/utils"
+	"go.uber.org/zap"
 )
-
-type Question struct {
-	QuestionID int      `json:"question_id"`
-	Question   string   `json:"question"`
-	Options    []string `json:"options"`
-}
 
 type StartQuizCLIService struct {
 	ApiBaseURL string
@@ -80,7 +74,6 @@ func (s *StartQuizCLIService) LoginUser(username, password string) (string, erro
 	}
 	defer resp.Body.Close()
 
-	// Check the response status
 	if resp.StatusCode == http.StatusOK {
 		var responsePayload map[string]string
 		if err := json.NewDecoder(resp.Body).Decode(&responsePayload); err != nil {
@@ -95,7 +88,6 @@ func (s *StartQuizCLIService) LoginUser(username, password string) (string, erro
 		return sessionToken, nil
 	}
 
-	// Handle unexpected response status
 	bodyBytes, _ := io.ReadAll(resp.Body)
 	return "", fmt.Errorf("login failed: %s", string(bodyBytes))
 }
@@ -103,13 +95,11 @@ func (s *StartQuizCLIService) LoginUser(username, password string) (string, erro
 func (s *StartQuizCLIService) StartQuiz(sessionToken string) error {
 	logger := utils.GetLogger().Sugar()
 
-	// Ensure HttpClient uses a CookieJar
 	if s.HttpClient.Jar == nil {
 		cookieJar, _ := cookiejar.New(nil)
 		s.HttpClient.Jar = cookieJar
 	}
 
-	// Explicitly set the cookie in the jar
 	cookie := &http.Cookie{
 		Name:  "quiz-session",
 		Value: sessionToken,
@@ -118,7 +108,6 @@ func (s *StartQuizCLIService) StartQuiz(sessionToken string) error {
 	u, _ := url.Parse(s.ApiBaseURL)
 	s.HttpClient.Jar.SetCookies(u, []*http.Cookie{cookie})
 
-	// Debug cookies before making the request
 	cookies := s.HttpClient.Jar.Cookies(u)
 	logger.Debug("Client cookies before request", zap.Any("cookies", cookies))
 
@@ -137,9 +126,8 @@ func (s *StartQuizCLIService) StartQuiz(sessionToken string) error {
 	return nil
 }
 
-func (s *StartQuizCLIService) GetNextQuestion(sessionToken string) (*Question, bool, error) {
+func (s *StartQuizCLIService) GetNextQuestion(sessionToken string) (*models.Question, bool, error) {
 	req, _ := http.NewRequest(http.MethodGet, s.ApiBaseURL+"/quiz/next", nil)
-	//req.AddCookie(&http.Cookie{Name: "quiz-session", Value: sessionToken})
 	resp, err := s.HttpClient.Do(req)
 	if err != nil {
 		return nil, false, fmt.Errorf("failed to fetch next question")
@@ -147,7 +135,7 @@ func (s *StartQuizCLIService) GetNextQuestion(sessionToken string) (*Question, b
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusOK {
-		var question Question
+		var question models.Question
 		body, _ := io.ReadAll(resp.Body)
 		_ = json.Unmarshal(body, &question)
 		return &question, false, nil
@@ -162,7 +150,6 @@ func (s *StartQuizCLIService) SubmitAnswer(sessionToken string, questionID, answ
 	payload := map[string]int{"QuestionIndex": questionID, "Answer": answer}
 	body, _ := json.Marshal(payload)
 	req, _ := http.NewRequest(http.MethodPost, s.ApiBaseURL+"/quiz/submit", bytes.NewBuffer(body))
-	//req.AddCookie(&http.Cookie{Name: "quiz-session", Value: sessionToken})
 	resp, err := s.HttpClient.Do(req)
 	if err != nil {
 		return "", fmt.Errorf("failed to submit answer")
@@ -181,7 +168,6 @@ func (s *StartQuizCLIService) SubmitAnswer(sessionToken string, questionID, answ
 
 func (s *StartQuizCLIService) FetchResults(sessionToken string) (int, error) {
 	req, _ := http.NewRequest(http.MethodGet, s.ApiBaseURL+"/quiz/results", nil)
-	//req.AddCookie(&http.Cookie{Name: "quiz-session", Value: sessionToken})
 	resp, err := s.HttpClient.Do(req)
 	if err != nil {
 		return 0, fmt.Errorf("failed to fetch results")
@@ -198,7 +184,6 @@ func (s *StartQuizCLIService) FetchResults(sessionToken string) (int, error) {
 
 func (s *StartQuizCLIService) FetchStats(sessionToken string) (map[string]string, error) {
 	req, _ := http.NewRequest(http.MethodGet, s.ApiBaseURL+"/quiz/stats", nil)
-	//req.AddCookie(&http.Cookie{Name: "quiz-session", Value: sessionToken})
 	resp, err := s.HttpClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch stats")

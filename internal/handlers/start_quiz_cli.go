@@ -100,7 +100,6 @@ func (h *StartQuizCLIHandler) startQuizLoop(reader *bufio.Reader, sessionToken s
 		finished := false
 		for !finished {
 			question, isFinished, err := h.Service.GetNextQuestion(sessionToken)
-			logger.Debug("Session token_getnextquestion_h", "session_token: ", sessionToken)
 			if err != nil {
 				fmt.Println("Error fetching question. Try again.")
 				return
@@ -113,6 +112,8 @@ func (h *StartQuizCLIHandler) startQuizLoop(reader *bufio.Reader, sessionToken s
 			}
 
 			fmt.Printf("\nQuestion: %s\n", question.Question)
+			logger.Debug("Session token_getnextquestion_h", "session_token: ", sessionToken)
+
 			for i, option := range question.Options {
 				fmt.Printf("%d. %s\n", i+1, option)
 			}
