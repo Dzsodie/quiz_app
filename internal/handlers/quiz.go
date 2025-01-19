@@ -62,8 +62,18 @@ func (h *QuizHandler) StartQuiz(w http.ResponseWriter, r *http.Request) {
 	}
 
 	username, ok := session.Values["username"].(string)
-	if !ok || username == "" {
-		logger.Warn("No username found in session")
+	sessionToken, tokenOk := session.Values["session_token"].(string)
+	if !ok || !tokenOk || username == "" || sessionToken == "" {
+		logger.Warn("Invalid session: missing username or token")
+		http.Error(w, "Invalid session", http.StatusUnauthorized)
+		return
+	}
+
+	storedUsername, exists := utils.SessionDB[sessionToken]
+	if !exists || storedUsername != username {
+		logger.Warn("Session token not found or mismatched",
+			zap.String("session_token", sessionToken),
+			zap.String("stored_username", storedUsername))
 		http.Error(w, "Invalid session", http.StatusUnauthorized)
 		return
 	}

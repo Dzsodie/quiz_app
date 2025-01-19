@@ -52,10 +52,15 @@ func (db *MemoryDB) GetAllUsers() []User {
 	}
 	return users
 }
-func (db *MemoryDB) UpdateUser(user User) {
+func (db *MemoryDB) UpdateUser(user User) error {
 	db.mu.Lock()
 	defer db.mu.Unlock()
+
+	if _, exists := db.users[user.Username]; !exists {
+		return errors.New("user not found")
+	}
 	db.users[user.Username] = user
+	return nil
 }
 
 func (db *MemoryDB) GetQuestion(id string) (Question, error) {

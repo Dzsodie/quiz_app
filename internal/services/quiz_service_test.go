@@ -4,45 +4,55 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/Dzsodie/quiz_app/internal/database"
 	"github.com/Dzsodie/quiz_app/internal/models"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestQuizServiceGetQuestions(t *testing.T) {
-	s := &QuizService{}
+	db := database.NewMemoryDB()
+	s := NewQuizService(db)
+
 	questions := []models.Question{
-		{Question: "What is 2+2?", Options: []string{"3", "4", "5"}, Answer: 1},
-		{Question: "What is the capital of France?", Options: []string{"Paris", "Berlin", "Madrid"}, Answer: 0},
+		{QuestionID: 1, Question: "What is 2+2?", Options: []string{"3", "4", "5"}, Answer: 1},
+		{QuestionID: 2, Question: "What is the capital of France?", Options: []string{"Paris", "Berlin", "Madrid"}, Answer: 0},
 	}
 	s.LoadQuestions(questions)
 
 	result, err := s.GetQuestions()
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
 	assert.NoError(t, err, "expected no error when getting questions")
 	assert.Equal(t, questions, result, "expected questions to match loaded questions")
 }
 
 func TestQuizServiceStartQuiz(t *testing.T) {
-	s := &QuizService{}
-	if err := s.StartQuiz("testuser"); err != nil {
-		t.Errorf("Failed to start quiz for user 'testuser': %v", err)
-	}
+	db := database.NewMemoryDB()
+	s := NewQuizService(db)
 
-	assert.Equal(t, 0, userScores["testuser"], "expected initial score to be 0")
-	assert.Equal(t, 0, userProgress["testuser"], "expected initial progress to be 0")
+	// Add a user to the database
+	db.AddUser(database.User{Username: "testuser"})
+
+	err := s.StartQuiz("testuser")
+	assert.NoError(t, err, "expected no error when starting a quiz")
+
+	user, err := db.GetUser("testuser")
+	assert.NoError(t, err, "expected no error when retrieving user")
+	assert.Equal(t, 0, user.Score, "expected initial score to be 0")
+	assert.Empty(t, user.Progress, "expected initial progress to be empty")
 }
 
 func TestQuizServiceGetNextQuestion(t *testing.T) {
-	s := &QuizService{}
+	db := database.NewMemoryDB()
+	s := NewQuizService(db)
+
 	questions := []models.Question{
-		{Question: "What is 2+2?", Options: []string{"3", "4", "5"}, Answer: 1},
+		{QuestionID: 1, Question: "What is 2+2?", Options: []string{"3", "4", "5"}, Answer: 1},
 	}
 	s.LoadQuestions(questions)
-	if err := s.StartQuiz("testuser"); err != nil {
-		t.Errorf("Failed to start quiz for user 'testuser': %v", err)
-	}
+
+	db.AddUser(database.User{Username: "testuser"})
+
+	err := s.StartQuiz("testuser")
+	assert.NoError(t, err, "expected no error when starting a quiz")
 
 	question, err := s.GetNextQuestion("testuser")
 	assert.NoError(t, err, "expected no error when fetching the next question")
@@ -54,19 +64,27 @@ func TestQuizServiceGetNextQuestion(t *testing.T) {
 }
 
 func TestQuizServiceSubmitAnswer(t *testing.T) {
-	s := &QuizService{}
+	db := database.NewMemoryDB()
+	s := NewQuizService(db)
+
 	questions := []models.Question{
-		{Question: "What is 2+2?", Options: []string{"3", "4", "5"}, Answer: 1},
+		{QuestionID: 1, Question: "What is 2+2?", Options: []string{"3", "4", "5"}, Answer: 1},
 	}
 	s.LoadQuestions(questions)
-	if err := s.StartQuiz("testuser"); err != nil {
-		t.Fatalf("Failed to start quiz for user 'testuser': %v", err)
-	}
+
+	db.AddUser(database.User{Username: "testuser"})
+
+	err := s.StartQuiz("testuser")
+	assert.NoError(t, err, "expected no error when starting a quiz")
 
 	// Test valid answer
 	correct, err := s.SubmitAnswer("testuser", 0, 1)
 	assert.NoError(t, err, "expected no error when submitting a valid answer")
 	assert.True(t, correct, "expected answer to be marked as correct")
+
+	user, err := db.GetUser("testuser")
+	assert.NoError(t, err, "expected no error when retrieving user")
+	assert.Equal(t, 1, user.Score, "expected score to be updated after correct answer")
 
 	// Test invalid answer
 	correct, err = s.SubmitAnswer("testuser", 0, 0)
@@ -80,12 +98,19 @@ func TestQuizServiceSubmitAnswer(t *testing.T) {
 }
 
 func TestQuizServiceGetResults(t *testing.T) {
-	s := &QuizService{}
-	if err := s.StartQuiz("testuser"); err != nil {
-		t.Errorf("Failed to start quiz for user 'testuser': %v", err)
-	}
+	db := database.NewMemoryDB()
+	s := NewQuizService(db)
 
-	userScores["testuser"] = 5
+	db.AddUser(database.User{Username: "testuser"})
+
+	err := s.StartQuiz("testuser")
+	assert.NoError(t, err, "expected no error when starting a quiz")
+
+	user, err := db.GetUser("testuser")
+	assert.NoError(t, err, "expected no error when retrieving user")
+
+	user.Score = 5
+	assert.NoError(t, db.UpdateUser(user), "expected no error when updating user score")
 
 	score, err := s.GetResults("testuser")
 	assert.NoError(t, err, "expected no error when retrieving results")
@@ -93,13 +118,15 @@ func TestQuizServiceGetResults(t *testing.T) {
 
 	_, err = s.GetResults("nonexistent")
 	assert.Error(t, err, "expected error when retrieving results for a non-existent user")
-	assert.Equal(t, "quiz not started", err.Error(), "unexpected error message")
+	assert.Equal(t, "user not found: user not found", err.Error(), "unexpected error message")
 }
 
 func TestQuizServiceConcurrency(t *testing.T) {
-	s := &QuizService{}
+	db := database.NewMemoryDB()
+	s := NewQuizService(db)
+
 	questions := []models.Question{
-		{Question: "What is 2+2?", Options: []string{"3", "4", "5"}, Answer: 1},
+		{QuestionID: 1, Question: "What is 2+2?", Options: []string{"3", "4", "5"}, Answer: 1},
 	}
 	s.LoadQuestions(questions)
 
@@ -111,6 +138,8 @@ func TestQuizServiceConcurrency(t *testing.T) {
 		go func(i int) {
 			defer wg.Done()
 			username := "user" + string(rune(i))
+			db.AddUser(database.User{Username: username})
+
 			if err := s.StartQuiz(username); err != nil {
 				t.Errorf("Failed to start quiz for user '%s': %v", username, err)
 			}
@@ -118,7 +147,6 @@ func TestQuizServiceConcurrency(t *testing.T) {
 			if _, err := s.SubmitAnswer(username, 0, 1); err != nil {
 				t.Errorf("Failed to submit answer for user '%s': %v", username, err)
 			}
-
 		}(i)
 	}
 

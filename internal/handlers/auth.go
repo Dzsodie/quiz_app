@@ -107,6 +107,8 @@ func (h *AuthHandler) LoginUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	utils.SessionDB[sessionToken] = user.Username
+
 	session, err := utils.SessionStore.Get(r, "quiz-session")
 	if err != nil {
 		logger.Warn("Failed to retrieve session", zap.Error(err))

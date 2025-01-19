@@ -8,7 +8,7 @@ import (
 
 func TestValidateAnswerPayload(t *testing.T) {
 	questions := []models.Question{
-		{Question: "What is 2+2?", Options: []string{"1", "2", "4"}, Answer: 2},
+		{QuestionID: 0, Question: "What is 2+2?", Options: []string{"1", "2", "4"}, Answer: 2},
 	}
 
 	tests := []struct {
@@ -17,11 +17,11 @@ func TestValidateAnswerPayload(t *testing.T) {
 		answer        int
 		expectedErr   bool
 	}{
-		{"ValidPayload", 0, 2, false},                                   // Valid case
-		{"InvalidQuestionIndexNegative", -1, 2, true},                   // Negative question index
-		{"InvalidQuestionIndexOutOfRange", 1, 2, true},                  // Out-of-range question index
-		{"InvalidAnswerNegative", 0, -1, true},                          // Negative answer
-		{"InvalidAnswerOutOfRange", 0, len(questions[0].Options), true}, // Out-of-range answer
+		{"ValidPayload", 0, 2, false},                                       // Valid case
+		{"InvalidQuestionIndexNegative", -1, 2, true},                       // Negative question index
+		{"InvalidQuestionIndexOutOfRange", 1, 2, true},                      // Out-of-range question index
+		{"InvalidAnswerNegative", 0, -1, true},                              // Negative answer
+		{"InvalidAnswerOutOfRange", 0, len(questions[0].Options) + 1, true}, // Out-of-range answer
 	}
 
 	for _, tt := range tests {

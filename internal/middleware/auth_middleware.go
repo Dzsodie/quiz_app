@@ -27,14 +27,23 @@ func AuthMiddleware(next http.Handler) http.Handler {
 		username, ok := session.Values["username"].(string)
 		sessionToken, tokenOk := session.Values["session_token"].(string)
 		if !ok || !tokenOk || username == "" || sessionToken == "" {
-			logger.Warn("Session missing username or token")
+			logger.Warn("Session missing username or token",
+				zap.String("username", username),
+				zap.String("session_token", sessionToken))
 			http.Error(w, "Invalid session", http.StatusUnauthorized)
 			return
 		}
 
 		storedUsername, exists := utils.SessionDB[sessionToken]
+		logger.Debug("Session token validation",
+			zap.String("session_token_in_cookie", sessionToken),
+			zap.String("stored_username", storedUsername),
+			zap.Bool("exists", exists))
+
 		if !exists || storedUsername != username {
-			logger.Warn("Session token not found or mismatched")
+			logger.Warn("Session token not found or mismatched",
+				zap.String("session_token_in_cookie", sessionToken),
+				zap.String("stored_username", storedUsername))
 			http.Error(w, "Invalid session", http.StatusUnauthorized)
 			return
 		}

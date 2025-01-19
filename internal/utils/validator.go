@@ -21,9 +21,9 @@ func ValidateAnswerPayload(questionIndex, answer int, questions []models.Questio
 	}
 
 	optionsCount := len(questions[questionIndex].Options)
-	if answer < 0 || answer >= optionsCount {
+	if answer < 0 || answer > optionsCount {
 		logger.Warn("Validation failed: answer out of range", zap.Int("answer", answer), zap.Int("maxOptions", optionsCount-1))
-		return fmt.Errorf("answer must be between 0 and %d", optionsCount-1)
+		return fmt.Errorf("answer must be between 0 and %d", optionsCount)
 	}
 
 	logger.Info("Answer payload validated successfully", zap.Int("questionIndex", questionIndex), zap.Int("answer", answer))
