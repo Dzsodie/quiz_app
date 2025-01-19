@@ -4,8 +4,7 @@ import (
 	"flag"
 	"log"
 	"net/http"
-	"os"
-
+	"net/http/httptest"
 	"time"
 
 	"github.com/Dzsodie/quiz_app/cmd"
@@ -47,18 +46,22 @@ func (app *QuizApp) Run() {
 
 	if *cliMode {
 		sugar.Info("Starting Quiz in CLI mode...")
-		go setupRESTAPIServer(cfg, sugar, true, app.DB)
+		go setupRESTAPIServer(cfg, sugar, app.DB)
 		time.Sleep(2 * time.Second)
-		handler := handlers.NewStartQuizCliHandler(
-			services.NewStartQuizCLIService(cfg.APIBaseURL, &http.Client{}, app.DB),
-		)
-		handler.StartQuizCLI(cfg.APIBaseURL, app.DB)
+
+		req, err := http.NewRequest("POST", "/quiz/start", nil)
+		if err != nil {
+			sugar.Fatalf("Failed to create request: %v", err)
+		}
+		rr := httptest.NewRecorder()
+		quizHandler := handlers.NewQuizHandler(&services.QuizService{DB: app.DB})
+		quizHandler.StartQuiz(rr, req)
 		return
 	}
 
 	sugar.Infof("Application started in %s mode", cfg.Environment)
 
-	setupRESTAPIServer(cfg, sugar, false, app.DB)
+	setupRESTAPIServer(cfg, sugar, app.DB)
 	cmd.Execute()
 }
 
@@ -67,40 +70,53 @@ func newQuizApp(db *database.MemoryDB) *QuizApp {
 }
 
 func main() {
-	utils.InitializeSessionStore()
+	cfg := config.LoadConfig()
+	utils.InitializeSessionStore(cfg)
 
 	memoryDB := database.NewMemoryDB()
-	memoryDB.AddUser(database.User{
-		UserID:   uuid.New().String(),
-		Username: "testuser1",
-		Password: "password-1",
-		Progress: []int{},
-		Score:    10,
-	})
-
-	memoryDB.AddUser(database.User{
-		UserID:   uuid.New().String(),
-		Username: "testuser2",
-		Password: "password@25",
-		Progress: []int{},
-		Score:    20,
-	})
-
-	memoryDB.AddUser(database.User{
-		UserID:   uuid.New().String(),
-		Username: "testuser3",
-		Password: "password!34",
-		Progress: []int{},
-		Score:    15,
-	})
+	initializeMockUsers(memoryDB)
 
 	app := newQuizApp(memoryDB)
-
 	app.Run()
 }
 
-func setupRESTAPIServer(cfg config.Config, sugar *zap.SugaredLogger, suppressLogs bool, db *database.MemoryDB) {
+func initializeMockUsers(memoryDB *database.MemoryDB) {
+	mockUsers := []database.User{
+		{
+			UserID:     uuid.New().String(),
+			Username:   "testuser1",
+			Password:   "password-1",
+			Progress:   []int{},
+			Score:      10,
+			QuizTaken:  1,
+			Percentage: 50,
+		},
+		{
+			UserID:     uuid.New().String(),
+			Username:   "testuser2",
+			Password:   "password@25",
+			Progress:   []int{},
+			Score:      20,
+			QuizTaken:  2,
+			Percentage: 50,
+		},
+		{
+			UserID:     uuid.New().String(),
+			Username:   "testuser3",
+			Password:   "password!34",
+			Progress:   []int{},
+			Score:      15,
+			QuizTaken:  2,
+			Percentage: 0,
+		},
+	}
 
+	for _, user := range mockUsers {
+		memoryDB.AddUser(user)
+	}
+}
+
+func setupRESTAPIServer(cfg config.Config, sugar *zap.SugaredLogger, db *database.MemoryDB) {
 	quizService := &services.QuizService{DB: db}
 	authService := &services.AuthService{DB: db}
 
@@ -112,10 +128,20 @@ func setupRESTAPIServer(cfg config.Config, sugar *zap.SugaredLogger, suppressLog
 	sugar.Infof("Successfully loaded %d questions", len(questions))
 	quizService.LoadQuestions(questions)
 
+	r := setupRoutes(quizService, authService)
+
+	sugar.Infof("Server is running on port %s...", cfg.ServerPort)
+	if err := http.ListenAndServe(cfg.ServerPort, r); err != nil {
+		sugar.Fatalf("Server failed: %v", err)
+	}
+}
+
+func setupRoutes(quizService *services.QuizService, authService *services.AuthService) *mux.Router {
+	r := mux.NewRouter()
+
 	quizHandler := handlers.NewQuizHandler(quizService)
 	authHandler := handlers.NewAuthHandler(authService)
 
-	r := mux.NewRouter()
 	r.HandleFunc("/register", authHandler.RegisterUser).Methods("POST")
 	r.HandleFunc("/login", authHandler.LoginUser).Methods("POST")
 	r.HandleFunc("/questions", quizHandler.GetQuestions).Methods("GET")
@@ -127,19 +153,12 @@ func setupRESTAPIServer(cfg config.Config, sugar *zap.SugaredLogger, suppressLog
 	api.HandleFunc("/submit", quizHandler.SubmitAnswer).Methods("POST")
 	api.HandleFunc("/results", quizHandler.GetResults).Methods("GET")
 	api.HandleFunc("/stats", quizHandler.GetStats).Methods("GET")
+
 	r.PathPrefix("/swagger/").Handler(httpSwagger.WrapHandler)
 
 	inMemoryDB := make(map[string]string)
 	healthChecker := health.NewHealthCheck(inMemoryDB)
 	r.HandleFunc("/health", healthChecker.HealthCheckHandler).Methods("GET")
 
-	go func() {
-		if suppressLogs {
-			log.SetOutput(os.Stdout)
-		}
-		sugar.Infof("Server is running on port %s...", cfg.ServerPort)
-		if err := http.ListenAndServe(cfg.ServerPort, r); err != nil {
-			sugar.Fatalf("Server failed: %v", err)
-		}
-	}()
+	return r
 }

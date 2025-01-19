@@ -3,6 +3,7 @@ package utils
 import (
 	"crypto/rand"
 	"encoding/hex"
+	"errors"
 	"log"
 	"net/http"
 	"sync"
@@ -17,19 +18,23 @@ var (
 	SessionDB        = make(map[string]string) // Store session tokens
 )
 
-func InitializeSessionStore() {
+func InitializeSessionStore(config.Config) {
 	sessionStoreOnce.Do(func() {
-		config := config.LoadConfig()
-		if config.SessionSecret == "" {
+
+		if config.LoadConfig().SessionSecret == "" {
 			log.Fatal("Session secret is not set in the configuration")
 		}
 
-		SessionStore = sessions.NewCookieStore([]byte(config.SessionSecret))
+		SessionStore = sessions.NewCookieStore([]byte(config.LoadConfig().SessionSecret))
+		if SessionStore == nil {
+			log.Fatal("Failed to initialize session store")
+		}
+
 		SessionStore.Options = &sessions.Options{
 			Path:     "/",
 			MaxAge:   3600, // 1 hour
 			HttpOnly: true,
-			Secure:   false, // Set to true if using HTTPS
+			Secure:   false,
 			SameSite: http.SameSiteStrictMode,
 		}
 	})
@@ -45,4 +50,11 @@ func GenerateSessionToken() (string, error) {
 	// Save session token in SessionDB
 	SessionDB[token] = ""
 	return token, nil
+}
+
+func ValidateSessionStore() error {
+	if SessionStore == nil {
+		return errors.New("session store is not initialized")
+	}
+	return nil
 }

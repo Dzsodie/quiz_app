@@ -69,10 +69,10 @@ func (s *QuizService) StartQuiz(username string) error {
 
 	quizTimers[username] = time.AfterFunc(10*time.Minute, func() {
 		quizMu.Lock()
+		defer quizMu.Unlock()
 		delete(userProgress, username)
 		delete(userScores, username)
 		delete(quizTimers, username)
-		quizMu.Unlock()
 		logger.Info("Quiz session expired", zap.String("username", username))
 	})
 	logger.Info("Quiz session started", zap.String("username", username))
@@ -111,6 +111,11 @@ func (s *QuizService) SubmitAnswer(username string, questionIndex, answer int) (
 		return false, errors.New("question index is out of range")
 	}
 
+	if answer < 0 || answer > 4 {
+		logger.Warn("Invalid answer provided", zap.Int("answer", answer))
+		return false, errors.New("answer must be 1, 2, or 3")
+	}
+
 	correctAnswer := questions[questionIndex].Answer
 	if answer == correctAnswer {
 		userScores[username]++
@@ -136,23 +141,29 @@ func (s *QuizService) GetResults(username string) (int, error) {
 	return score, nil
 }
 
-// GetStats calculates and returns a user's stats as a string.
 func (s *QuizService) GetStats(username string) ([]models.User, string, error) {
 	logger := utils.GetLogger().Sugar()
 	logger.Info("Fetching stats for user", zap.String("username", username))
 
 	user, err := s.DB.GetUser(username)
 	if err != nil {
-		logger.Warn("Stats not available for user", zap.String("username", username))
-		return nil, "", ErrNoStatsForUser
+		if errors.Is(err, database.ErrUserNotFound) {
+			logger.Warn("User not found in database", zap.String("username", username))
+			return nil, "", ErrNoStatsForUser
+		}
+		logger.Error("Database error while fetching user stats", zap.String("username", username), zap.Error(err))
+		return nil, "", fmt.Errorf("error fetching user stats: %w", err)
 	}
 
 	allUsers := s.DB.GetAllUsers()
-	logger.Debug("All users", zap.Any("users", allUsers))
+	if len(allUsers) == 0 {
+		logger.Warn("No users found in database")
+		return nil, "", ErrNoStatsForUser
+	}
+
 	allScores := make([]int, len(allUsers))
-	logger.Debug("All scores", zap.Any("scores", allScores))
-	for i, user := range allUsers {
-		allScores[i] = user.Score
+	for i, u := range allUsers {
+		allScores[i] = u.Score
 	}
 	sort.Ints(allScores)
 
@@ -162,10 +173,8 @@ func (s *QuizService) GetStats(username string) ([]models.User, string, error) {
 			betterScores++
 		}
 	}
-	logger.Debug("Better scores", zap.Int("better_scores", betterScores))
+
 	percentage := (float64(betterScores) / float64(len(allScores))) * 100
-	logger.Debug("Percentage", zap.Float64("percentage", percentage))
-	// Create the response message
 	message := fmt.Sprintf(
 		"Your score is %d and that is %.2f%% better than other users' scores.",
 		user.Score, percentage,
@@ -177,12 +186,11 @@ func (s *QuizService) GetStats(username string) ([]models.User, string, error) {
 		zap.Float64("better_than_percentage", percentage),
 	)
 
-	// Convert allUsers to []models.User
 	modelUsers := make([]models.User, len(allUsers))
-	for i, user := range allUsers {
+	for i, u := range allUsers {
 		modelUsers[i] = models.User{
-			Username: user.Username,
-			Score:    user.Score,
+			Username: u.Username,
+			Score:    u.Score,
 		}
 	}
 

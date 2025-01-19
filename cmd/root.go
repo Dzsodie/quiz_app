@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/Dzsodie/quiz_app/config"
 	"github.com/Dzsodie/quiz_app/internal/database"
 	"github.com/Dzsodie/quiz_app/internal/handlers"
 	"github.com/Dzsodie/quiz_app/internal/services"
@@ -16,11 +15,9 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var quizService = &services.QuizService{}
-var authService = &services.AuthService{}
-var cfg = config.LoadConfig()
+var quizService *services.QuizService
+var authService *services.AuthService
 
-// rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:   "quiz_app",
 	Short: "A CLI app for quiz questions and answers",
@@ -29,23 +26,19 @@ var rootCmd = &cobra.Command{
 	one answer and then evaluates the answer while sharing stats.`,
 }
 
-// quizCmd displays how-to information for the quiz app
 var quizCmd = &cobra.Command{
 	Use:   "quiz",
 	Short: "Initiate the quiz application",
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println("Welcome to the Quiz App!")
-		fmt.Println("The quiz contains of 10 questions and 3-3 answers for each, make your choice of the answer by typing the number.")
-		fmt.Println("There is a timer, try to answer all 10 questions within the given timeframe.")
-		fmt.Println("The application is controllable with command line commands.")
-		fmt.Println("Available commands:")
+		fmt.Println("The quiz contains 10 questions with multiple choices.")
+		fmt.Println("Commands available:")
 		fmt.Println("1. start - Start the quiz")
 		fmt.Println("2. score - View your score and stats")
 		fmt.Println("3. exit - Quit the quiz app")
 	},
 }
 
-// startCmd starts the quiz
 var startCmd = &cobra.Command{
 	Use:   "start",
 	Short: "Start the quiz",
@@ -58,24 +51,42 @@ var startCmd = &cobra.Command{
 			return
 		}
 		quizService.LoadQuestions(questions)
-		apiBaseURL := "http://localhost:8080/api"
+
 		DB := database.NewMemoryDB()
-		handler := handlers.NewStartQuizCliHandler(services.NewStartQuizCLIService(cfg.APIBaseURL, &http.Client{}, DB))
-		handler.StartQuizCLI(apiBaseURL, DB)
+		quizHandler := handlers.NewQuizHandler(services.NewQuizService(DB))
+
+		http.HandleFunc("/quiz/start", quizHandler.StartQuiz)
+		fmt.Println("Quiz started and available at: http://localhost:8080/quiz/start")
+
+		if err := http.ListenAndServe(":8080", nil); err != nil {
+			fmt.Printf("Error starting HTTP server: %v\n", err)
+		}
 	},
 }
 
-// scoreCmd shows the score and stats
 var scoreCmd = &cobra.Command{
 	Use:   "score",
 	Short: "View your score and stats",
 	Run: func(cmd *cobra.Command, args []string) {
-		session, err := authService.GetSession()
+		if authService == nil {
+			fmt.Println("Authentication service not initialized.")
+			return
+		}
+		req, err := http.NewRequest("GET", "/", nil)
+		if err != nil {
+			fmt.Printf("Error creating request: %v\n", err)
+			return
+		}
+		session, err := authService.GetSession(req)
 		if err != nil {
 			fmt.Printf("Error retrieving session: %v\n", err)
 			return
 		}
-		username := session.Values["username"].(string)
+		username, ok := session.Values["username"].(string)
+		if !ok {
+			fmt.Println("Invalid session data.")
+			return
+		}
 		stats, _, err := quizService.GetStats(username)
 		if err != nil {
 			fmt.Printf("Error retrieving stats: %v\n", err)
@@ -85,7 +96,6 @@ var scoreCmd = &cobra.Command{
 	},
 }
 
-// exitCmd exits the application
 var exitCmd = &cobra.Command{
 	Use:   "exit",
 	Short: "Quit the quiz app",
@@ -103,6 +113,10 @@ func Execute() {
 }
 
 func init() {
+	DB := database.NewMemoryDB()
+	quizService = services.NewQuizService(DB)
+	authService = services.NewAuthService(DB)
+
 	rootCmd.AddCommand(quizCmd)
 	rootCmd.AddCommand(startCmd)
 	rootCmd.AddCommand(scoreCmd)

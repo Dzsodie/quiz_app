@@ -10,6 +10,7 @@ type Config struct {
 	APIBaseURL        string
 	ServerPort        string
 	SessionSecret     string
+	SessionKey        string
 	QuestionsFilePath string
 }
 
@@ -20,6 +21,7 @@ func LoadConfig() Config {
 		APIBaseURL:        getEnv("API_BASE_URL", "http://localhost:8080"),
 		ServerPort:        getEnv("SERVER_PORT", ":8080"),
 		SessionSecret:     getEnv("SESSION_SECRET", "quiz-secret"),
+		SessionKey:        getEnv("SESSION_KEY", "quiz-session"),
 		QuestionsFilePath: getEnv("QUESTIONS_FILE_PATH", "questions.csv"),
 	}
 }

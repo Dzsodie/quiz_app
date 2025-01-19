@@ -11,6 +11,8 @@ type MemoryDB struct {
 	mu        sync.RWMutex
 }
 
+var ErrUserNotFound = errors.New("user not found")
+
 func NewMemoryDB() *MemoryDB {
 	return &MemoryDB{questions: make(map[string]Question), users: make(map[string]User)}
 }
@@ -35,7 +37,7 @@ func (db *MemoryDB) GetUser(username string) (User, error) {
 
 	user, exists := db.users[username]
 	if !exists {
-		return User{}, errors.New("user not found")
+		return User{}, ErrUserNotFound
 	}
 	return user, nil
 }
@@ -49,6 +51,11 @@ func (db *MemoryDB) GetAllUsers() []User {
 		users = append(users, user)
 	}
 	return users
+}
+func (db *MemoryDB) UpdateUser(user User) {
+	db.mu.Lock()
+	defer db.mu.Unlock()
+	db.users[user.Username] = user
 }
 
 func (db *MemoryDB) GetQuestion(id string) (Question, error) {

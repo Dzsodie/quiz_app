@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/Dzsodie/quiz_app/internal/database"
 	"github.com/Dzsodie/quiz_app/internal/models"
 	"github.com/Dzsodie/quiz_app/internal/services"
 	"github.com/Dzsodie/quiz_app/internal/utils"
@@ -12,10 +13,11 @@ import (
 
 type AuthHandler struct {
 	AuthService services.IAuthService
+	Database    *database.MemoryDB
 }
 
 func NewAuthHandler(authService services.IAuthService) *AuthHandler {
-	return &AuthHandler{AuthService: authService}
+	return &AuthHandler{AuthService: authService, Database: database.NewMemoryDB()}
 }
 
 // @Summary Register a new user
@@ -30,35 +32,29 @@ func NewAuthHandler(authService services.IAuthService) *AuthHandler {
 // @Router /register [post]
 func (h *AuthHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 	logger := utils.GetLogger().Sugar()
+
+	// Decode request body
 	var user models.User
 	if err := json.NewDecoder(r.Body).Decode(&user); err != nil || user.Username == "" || user.Password == "" {
-		logger.Warn("Invalid input for registration", zap.Error(err))
+		logger.Warn("Invalid registration input", zap.Error(err))
 		http.Error(w, `{"message":"Invalid input"}`, http.StatusBadRequest)
 		return
 	}
 
+	// Register user
 	if err := h.AuthService.RegisterUser(user.Username, user.Password); err != nil {
 		if err.Error() == "user already exists" {
 			logger.Warn("User already exists", zap.String("username", user.Username))
-			http.Error(w, `{"message":"user already exists"}`, http.StatusConflict)
+			http.Error(w, `{"message":"User already exists"}`, http.StatusConflict)
 		} else {
-			logger.Error("Internal server error during registration", zap.Error(err))
+			logger.Error("Error during registration", zap.Error(err))
 			http.Error(w, `{"message":"Internal server error"}`, http.StatusInternalServerError)
 		}
 		return
 	}
 
-	userID, err := h.AuthService.GetUserID(user.Username)
-	if err != nil {
-		logger.Error("Failed to retrieve user ID", zap.Error(err))
-		http.Error(w, `{"message":"Internal server error"}`, http.StatusInternalServerError)
-		return
-	}
-
-	response := map[string]string{
-		"userID":  userID,
-		"message": "User registered successfully",
-	}
+	// Successful registration response
+	response := map[string]string{"message": "User registered successfully"}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	if err := json.NewEncoder(w).Encode(response); err != nil {
@@ -92,24 +88,37 @@ func (h *AuthHandler) LoginUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if err := utils.ValidateSessionStore(); err != nil {
+		logger.Error("Session store not initialized", zap.Error(err))
+		http.Error(w, `{"message":"session store - Internal server error"}`, http.StatusInternalServerError)
+		return
+	}
+
 	sessionToken, err := utils.GenerateSessionToken()
 	if err != nil {
 		logger.Warn("Failed to generate session token", zap.Error(err))
-		http.Error(w, `{"message":"Internal server error"}`, http.StatusInternalServerError)
+		http.Error(w, `{"message":" genereate - Internal server error"}`, http.StatusInternalServerError)
 		return
 	}
-	// Save session in the in-memory SessionDB
+
 	utils.SessionDB[sessionToken] = user.Username
 
 	session, err := utils.SessionStore.Get(r, "quiz-session")
 	if err != nil {
 		logger.Warn("Failed to retrieve session", zap.Error(err))
-		http.Error(w, `{"message":"Internal server error"}`, http.StatusInternalServerError)
+		http.Error(w, `{"message":"retrieve - Internal server error"}`, http.StatusInternalServerError)
 		return
 	}
 
 	session.Values["username"] = user.Username
 	session.Values["session_token"] = sessionToken
+	userID, err := h.AuthService.GetUserID(user.Username)
+	if err != nil {
+		logger.Error("Failed to retrieve user ID", zap.Error(err))
+		http.Error(w, `{"message":"Internal server error"}`, http.StatusInternalServerError)
+		return
+	}
+	session.Values["userID"] = userID
 
 	if err := session.Save(r, w); err != nil {
 		logger.Error("Failed to save session", zap.Error(err))
@@ -121,6 +130,8 @@ func (h *AuthHandler) LoginUser(w http.ResponseWriter, r *http.Request) {
 	response := map[string]string{
 		"message":       "Login successful",
 		"session_token": sessionToken,
+		"username":      user.Username,
+		"userID":        user.UserID,
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
