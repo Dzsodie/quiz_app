@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"os"
 
+	"time"
+
 	"github.com/Dzsodie/quiz_app/cmd"
 	"github.com/Dzsodie/quiz_app/config"
 	"github.com/Dzsodie/quiz_app/internal/database"
@@ -14,6 +16,7 @@ import (
 	"github.com/Dzsodie/quiz_app/internal/middleware"
 	"github.com/Dzsodie/quiz_app/internal/services"
 	"github.com/Dzsodie/quiz_app/internal/utils"
+	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 	"go.uber.org/zap"
 
@@ -27,10 +30,10 @@ type QuizApp struct {
 
 // Run starts the QuizApp
 func (app *QuizApp) Run() {
+	cfg := config.LoadConfig()
+
 	cliMode := flag.Bool("cli", false, "Run the application in CLI mode")
 	flag.Parse()
-
-	cfg := config.LoadConfig()
 
 	logger, err := utils.InitializeLogger(cfg.Environment, cfg.LogFilePath)
 	if err != nil {
@@ -45,8 +48,11 @@ func (app *QuizApp) Run() {
 
 	if *cliMode {
 		sugar.Info("Starting Quiz in CLI mode...")
-		setupRESTAPIServer(cfg, sugar, true, app.DB)
-		handler := handlers.NewStartQuizCliHandler(services.NewStartQuizCLIService(cfg.APIBaseURL, &http.Client{}, app.DB))
+		go setupRESTAPIServer(cfg, sugar, true, app.DB) // Start REST API server
+		time.Sleep(2 * time.Second)                     // Ensure server is ready
+		handler := handlers.NewStartQuizCliHandler(
+			services.NewStartQuizCLIService(cfg.APIBaseURL, &http.Client{}, app.DB),
+		)
 		handler.StartQuizCLI(cfg.APIBaseURL, app.DB)
 		return
 	}
@@ -64,12 +70,33 @@ func newQuizApp(db *database.MemoryDB) *QuizApp {
 
 func main() {
 	utils.InitializeSessionStore()
-	// Initialize the in-memory database
+	log.Println("Session store initialized with session secret")
+
 	memoryDB := database.NewMemoryDB()
 	// Populate the database with some test data
-	memoryDB.AddUser(database.User{Username: "testuser1", Score: 10})
-	memoryDB.AddUser(database.User{Username: "testuser2", Score: 20})
-	memoryDB.AddUser(database.User{Username: "testuser3", Score: 15})
+	memoryDB.AddUser(database.User{
+		UserID:   uuid.New().String(),
+		Username: "testuser1",
+		Password: "password-1",
+		Progress: []int{},
+		Score:    10,
+	})
+
+	memoryDB.AddUser(database.User{
+		UserID:   uuid.New().String(),
+		Username: "testuser2",
+		Password: "password@25",
+		Progress: []int{},
+		Score:    20,
+	})
+
+	memoryDB.AddUser(database.User{
+		UserID:   uuid.New().String(),
+		Username: "testuser3",
+		Password: "password!34",
+		Progress: []int{},
+		Score:    15,
+	})
 
 	app := newQuizApp(memoryDB)
 

@@ -14,6 +14,7 @@ import (
 var (
 	SessionStore     *sessions.CookieStore
 	sessionStoreOnce sync.Once
+	SessionDB        = make(map[string]string) // Store session tokens
 )
 
 func InitializeSessionStore() {
@@ -26,8 +27,7 @@ func InitializeSessionStore() {
 		SessionStore = sessions.NewCookieStore([]byte(config.SessionSecret))
 		SessionStore.Options = &sessions.Options{
 			Path:     "/",
-			Domain:   "localhost", // Adjust for deployment
-			MaxAge:   3600,        // 1 hour
+			MaxAge:   3600, // 1 hour
 			HttpOnly: true,
 			Secure:   false, // Set to true if using HTTPS
 			SameSite: http.SameSiteStrictMode,
@@ -40,5 +40,9 @@ func GenerateSessionToken() (string, error) {
 	if _, err := rand.Read(bytes); err != nil {
 		return "", err
 	}
-	return hex.EncodeToString(bytes), nil
+	token := hex.EncodeToString(bytes)
+
+	// Save session token in SessionDB
+	SessionDB[token] = ""
+	return token, nil
 }

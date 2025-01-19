@@ -83,26 +83,30 @@ func (h *StartQuizCLIHandler) handleLogin(reader *bufio.Reader) string {
 	}
 
 	fmt.Println("Login successful!")
-	logger.Info("User logged in successfully! ", "username: ", username, "session_token: ", sessionToken)
+	logger.Info("User logged in successfully!", "username: ", username, "session_token: ", sessionToken)
 	return sessionToken
 }
 
-func (h *StartQuizCLIHandler) startQuizLoop(reader *bufio.Reader, sessionToken string) {
+func (h *StartQuizCLIHandler) startQuizLoop(reader *bufio.Reader, sessionToken string) bool {
 	logger := utils.GetLogger().Sugar()
 	for {
 		err := h.Service.StartQuiz(sessionToken)
 		logger.Debug("Session token_startloop_h", "session_token: ", sessionToken)
+		logger.Error("Failed to start quiz. Try again.", "error", err)
 		if err != nil {
 			fmt.Println("Failed to start quiz. Try again.")
-			return
+			return false
 		}
 
 		finished := false
 		for !finished {
 			question, isFinished, err := h.Service.GetNextQuestion(sessionToken)
+			logger.Debug("Session token_getnextquestion_h_1", "session_token: ", sessionToken)
+			logger.Error("Error fetching question. Try again.", "error", err)
 			if err != nil {
 				fmt.Println("Error fetching question. Try again.")
-				return
+				logger.Error("Error fetching question", "error", err)
+				return false
 			}
 
 			if isFinished {
@@ -112,7 +116,7 @@ func (h *StartQuizCLIHandler) startQuizLoop(reader *bufio.Reader, sessionToken s
 			}
 
 			fmt.Printf("\nQuestion: %s\n", question.Question)
-			logger.Debug("Session token_getnextquestion_h", "session_token: ", sessionToken)
+			logger.Debug("Session token_getnextquestion__2", "session_token: ", sessionToken)
 
 			for i, option := range question.Options {
 				fmt.Printf("%d. %s\n", i+1, option)
@@ -122,14 +126,14 @@ func (h *StartQuizCLIHandler) startQuizLoop(reader *bufio.Reader, sessionToken s
 			message, err := h.Service.SubmitAnswer(sessionToken, question.QuestionID, answer)
 			if err != nil {
 				fmt.Println("Failed to submit answer. Try again.")
-				return
+				return false
 			}
 
 			fmt.Println(message)
 		}
 
 		if !h.askPlayAgain(reader) {
-			break
+			return true
 		}
 	}
 }

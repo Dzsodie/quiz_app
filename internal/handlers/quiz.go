@@ -51,6 +51,7 @@ func (h *QuizHandler) GetQuestions(w http.ResponseWriter, r *http.Request) {
 func (h *QuizHandler) StartQuiz(w http.ResponseWriter, r *http.Request) {
 	logger := utils.GetLogger().Sugar()
 	session, err := utils.SessionStore.Get(r, "quiz-session")
+	logger.Debug("Session token_startquiz_h>", "username: ", session.Values["username"])
 	if err != nil {
 		logger.Warn("Failed to retrieve session", zap.Error(err))
 		http.Error(w, "Invalid session", http.StatusUnauthorized)

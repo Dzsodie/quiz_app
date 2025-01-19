@@ -7,7 +7,6 @@ import (
 	"io"
 	"net/http"
 	"net/http/cookiejar"
-	"net/url"
 
 	"github.com/Dzsodie/quiz_app/internal/database"
 	"github.com/Dzsodie/quiz_app/internal/models"
@@ -95,31 +94,24 @@ func (s *StartQuizCLIService) LoginUser(username, password string) (string, erro
 func (s *StartQuizCLIService) StartQuiz(sessionToken string) error {
 	logger := utils.GetLogger().Sugar()
 
-	if s.HttpClient.Jar == nil {
-		cookieJar, _ := cookiejar.New(nil)
-		s.HttpClient.Jar = cookieJar
-	}
-
-	cookie := &http.Cookie{
-		Name:  "quiz-session",
-		Value: sessionToken,
-		Path:  "/",
-	}
-	u, _ := url.Parse(s.ApiBaseURL)
-	s.HttpClient.Jar.SetCookies(u, []*http.Cookie{cookie})
-
-	cookies := s.HttpClient.Jar.Cookies(u)
-	logger.Debug("Client cookies before request", zap.Any("cookies", cookies))
-
 	req, _ := http.NewRequest(http.MethodPost, s.ApiBaseURL+"/quiz/start", nil)
+	req.AddCookie(&http.Cookie{
+		Name:     "quiz-session",
+		Value:    sessionToken,
+		Path:     "/",
+		HttpOnly: true,
+	})
+
 	resp, err := s.HttpClient.Do(req)
 	if err != nil {
+		logger.Error("Failed to start quiz", zap.Error(err))
 		return fmt.Errorf("failed to start quiz: %v", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
+		logger.Error("Failed to start quiz", zap.String("response", string(body)))
 		return fmt.Errorf("failed to start quiz: %s", string(body))
 	}
 

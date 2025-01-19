@@ -98,6 +98,8 @@ func (h *AuthHandler) LoginUser(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, `{"message":"Internal server error"}`, http.StatusInternalServerError)
 		return
 	}
+	// Save session in the in-memory SessionDB
+	utils.SessionDB[sessionToken] = user.Username
 
 	session, err := utils.SessionStore.Get(r, "quiz-session")
 	if err != nil {
@@ -106,17 +108,15 @@ func (h *AuthHandler) LoginUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Save session data
 	session.Values["username"] = user.Username
 	session.Values["session_token"] = sessionToken
+
 	if err := session.Save(r, w); err != nil {
-		logger.Warn("Failed to save session", zap.Error(err))
-		http.Error(w, `{"message":"Internal server error"}`, http.StatusInternalServerError)
+		logger.Error("Failed to save session", zap.Error(err))
+		http.Error(w, "Failed to create session", http.StatusInternalServerError)
 		return
 	}
-
-	// Log session and cookies for debugging
-	logger.Debug("Session saved successfully", zap.Any("session", session.Values))
+	logger.Debug("Session saved successfully", zap.Any("session_values", session.Values))
 
 	response := map[string]string{
 		"message":       "Login successful",

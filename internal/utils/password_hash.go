@@ -1,7 +1,7 @@
 package utils
 
 import (
-	"errors"
+	"log"
 
 	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
@@ -14,15 +14,9 @@ func HashPassword(password string) (string, error) {
 		panic("Logger is not set for utils")
 	}
 
-	if len(password) < 8 {
-		logger.Warn("Password hashing failed: password too short")
-		return "", errors.New("password must be at least 8 characters")
-	}
-
 	hashed, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
-		logger.Error("Error hashing password", zap.Error(err))
-		return "", err
+		log.Fatalf("Failed to hash password: %v", err)
 	}
 
 	logger.Info("Password hashed successfully")

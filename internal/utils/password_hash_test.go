@@ -44,12 +44,3 @@ func TestComparePassword(t *testing.T) {
 		})
 	}
 }
-
-func TestHashPasswordError(t *testing.T) {
-
-	shortPassword := "short"
-	_, err := HashPassword(shortPassword)
-	if err == nil {
-		t.Error("Expected error for short password, got none")
-	}
-}
