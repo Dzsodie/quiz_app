@@ -28,7 +28,6 @@ type QuizApp struct {
 	DB *database.MemoryDB
 }
 
-// Run starts the QuizApp
 func (app *QuizApp) Run() {
 	cfg := config.LoadConfig()
 
@@ -48,8 +47,8 @@ func (app *QuizApp) Run() {
 
 	if *cliMode {
 		sugar.Info("Starting Quiz in CLI mode...")
-		go setupRESTAPIServer(cfg, sugar, true, app.DB) // Start REST API server
-		time.Sleep(2 * time.Second)                     // Ensure server is ready
+		go setupRESTAPIServer(cfg, sugar, true, app.DB)
+		time.Sleep(2 * time.Second)
 		handler := handlers.NewStartQuizCliHandler(
 			services.NewStartQuizCLIService(cfg.APIBaseURL, &http.Client{}, app.DB),
 		)
@@ -59,7 +58,6 @@ func (app *QuizApp) Run() {
 
 	sugar.Infof("Application started in %s mode", cfg.Environment)
 
-	// Start REST API server
 	setupRESTAPIServer(cfg, sugar, false, app.DB)
 	cmd.Execute()
 }
@@ -70,10 +68,8 @@ func newQuizApp(db *database.MemoryDB) *QuizApp {
 
 func main() {
 	utils.InitializeSessionStore()
-	log.Println("Session store initialized with session secret")
 
 	memoryDB := database.NewMemoryDB()
-	// Populate the database with some test data
 	memoryDB.AddUser(database.User{
 		UserID:   uuid.New().String(),
 		Username: "testuser1",
@@ -103,10 +99,8 @@ func main() {
 	app.Run()
 }
 
-// setupRESTAPIServer configures and starts the REST API server
 func setupRESTAPIServer(cfg config.Config, sugar *zap.SugaredLogger, suppressLogs bool, db *database.MemoryDB) {
 
-	// Services and handlers setup
 	quizService := &services.QuizService{DB: db}
 	authService := &services.AuthService{DB: db}
 
@@ -135,12 +129,10 @@ func setupRESTAPIServer(cfg config.Config, sugar *zap.SugaredLogger, suppressLog
 	api.HandleFunc("/stats", quizHandler.GetStats).Methods("GET")
 	r.PathPrefix("/swagger/").Handler(httpSwagger.WrapHandler)
 
-	// Health check
 	inMemoryDB := make(map[string]string)
 	healthChecker := health.NewHealthCheck(inMemoryDB)
 	r.HandleFunc("/health", healthChecker.HealthCheckHandler).Methods("GET")
 
-	// Start server in a separate goroutine
 	go func() {
 		if suppressLogs {
 			log.SetOutput(os.Stdout)
