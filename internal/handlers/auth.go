@@ -33,7 +33,6 @@ func NewAuthHandler(authService services.IAuthService) *AuthHandler {
 func (h *AuthHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 	logger := utils.GetLogger().Sugar()
 
-	// Decode request body
 	var user models.User
 	if err := json.NewDecoder(r.Body).Decode(&user); err != nil || user.Username == "" || user.Password == "" {
 		logger.Warn("Invalid registration input", zap.Error(err))
@@ -41,7 +40,6 @@ func (h *AuthHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Register user
 	if err := h.AuthService.RegisterUser(user.Username, user.Password); err != nil {
 		if err.Error() == "user already exists" {
 			logger.Warn("User already exists", zap.String("username", user.Username))
@@ -53,13 +51,20 @@ func (h *AuthHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Successful registration response
-	response := map[string]string{"message": "User registered successfully"}
+	userID, err := h.AuthService.GetUserID(user.Username)
+	if err != nil {
+		logger.Error("Failed to retrieve user ID", zap.Error(err))
+		http.Error(w, `{"message":"Internal server error"}`, http.StatusInternalServerError)
+		return
+	}
+
+	response := map[string]string{
+		"message": "User registered successfully",
+		"userID":  userID,
+	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	if err := json.NewEncoder(w).Encode(response); err != nil {
-		logger.Error("Failed to send response", zap.Error(err))
-	}
+	json.NewEncoder(w).Encode(response)
 }
 
 // @Summary Login a user

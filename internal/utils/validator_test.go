@@ -7,7 +7,6 @@ import (
 )
 
 func TestValidateAnswerPayload(t *testing.T) {
-
 	questions := []models.Question{
 		{Question: "What is 2+2?", Options: []string{"1", "2", "4"}, Answer: 2},
 	}
@@ -18,9 +17,11 @@ func TestValidateAnswerPayload(t *testing.T) {
 		answer        int
 		expectedErr   bool
 	}{
-		{"ValidPayload", 0, 2, false},
-		{"InvalidQuestionIndex", -1, 2, true},
-		{"InvalidAnswer", 0, 3, true},
+		{"ValidPayload", 0, 2, false},                                   // Valid case
+		{"InvalidQuestionIndexNegative", -1, 2, true},                   // Negative question index
+		{"InvalidQuestionIndexOutOfRange", 1, 2, true},                  // Out-of-range question index
+		{"InvalidAnswerNegative", 0, -1, true},                          // Negative answer
+		{"InvalidAnswerOutOfRange", 0, len(questions[0].Options), true}, // Out-of-range answer
 	}
 
 	for _, tt := range tests {
@@ -28,8 +29,6 @@ func TestValidateAnswerPayload(t *testing.T) {
 			err := ValidateAnswerPayload(tt.questionIndex, tt.answer, questions)
 			if (err != nil) != tt.expectedErr {
 				t.Errorf("ValidateAnswerPayload() error = %v, expectedErr = %v", err, tt.expectedErr)
-			} else if err != nil {
-				t.Logf("Validation error: %v", err)
 			}
 		})
 	}

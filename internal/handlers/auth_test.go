@@ -47,12 +47,12 @@ func TestRegisterUserHandler(t *testing.T) {
 	}{
 		{
 			name:            "Valid user registration",
-			input:           models.User{Username: "testuser", Password: "password"},
+			input:           models.User{Username: "testuser", Password: "Password123!"},
 			mockReturnErr:   nil,
 			mockUserID:      "12345",
 			mockUserIDError: nil,
 			expectedStatus:  http.StatusCreated,
-			expectedBody:    `{"userID":"12345","message":"User registered successfully"}`,
+			expectedBody:    `{"message":"User registered successfully","userID":"12345"}`,
 		},
 		{
 			name:           "Invalid input - empty body",
@@ -63,16 +63,15 @@ func TestRegisterUserHandler(t *testing.T) {
 		},
 		{
 			name:           "User already exists",
-			input:          models.User{Username: "testuser", Password: "password"},
+			input:          models.User{Username: "testuser", Password: "Password123!"},
 			mockReturnErr:  errors.New("user already exists"),
 			expectedStatus: http.StatusConflict,
-			expectedBody:   `{"message":"user already exists"}`,
+			expectedBody:   `{"message":"User already exists"}`,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Set up mocks
 			if tt.input.Username != "" || tt.input.Password != "" {
 				mockService.On("RegisterUser", tt.input.Username, tt.input.Password).Return(tt.mockReturnErr).Once()
 			}
@@ -84,10 +83,8 @@ func TestRegisterUserHandler(t *testing.T) {
 			req, _ := http.NewRequest(http.MethodPost, "/register", bytes.NewBuffer(body))
 			rr := httptest.NewRecorder()
 
-			// Call the handler
 			authHandler.RegisterUser(rr, req)
 
-			// Validate response
 			assert.Equal(t, tt.expectedStatus, rr.Code)
 			assert.JSONEq(t, tt.expectedBody, rr.Body.String())
 			mockService.AssertExpectations(t)
