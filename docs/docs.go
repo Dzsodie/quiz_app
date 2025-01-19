@@ -9,7 +9,16 @@ const docTemplate = `{
     "info": {
         "description": "{{escape .Description}}",
         "title": "{{.Title}}",
-        "contact": {},
+        "termsOfService": "http://swagger.io/terms/",
+        "contact": {
+            "name": "Zsuzsa Makara",
+            "url": "https://dzsodie.github.io/",
+            "email": "dzsodie@gmail.com"
+        },
+        "license": {
+            "name": "MIT",
+            "url": "https://opensource.org/licenses/MIT"
+        },
         "version": "{{.Version}}"
     },
     "host": "{{.Host}}",
@@ -72,116 +81,36 @@ const docTemplate = `{
         },
         "/questions": {
             "get": {
-                "description": "Retrieve the list of questions",
+                "description": "Fetches all quiz questions available in the system",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "Quiz"
                 ],
-                "summary": "Get all questions",
+                "summary": "Get all quiz questions",
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "List of questions",
                         "schema": {
                             "type": "array",
                             "items": {
                                 "$ref": "#/definitions/models.Question"
                             }
                         }
-                    }
-                }
-            }
-        },
-        "/quiz/next": {
-            "get": {
-                "description": "Retrieve the next question for the quiz",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Quiz"
-                ],
-                "summary": "Get the next question",
-                "responses": {
-                    "200": {
-                        "description": "OK",
+                    },
+                    "500": {
+                        "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/models.Question"
+                            "type": "string"
                         }
                     }
                 }
             }
         },
-        "/quiz/results": {
-            "get": {
-                "description": "Retrieve the results of the quiz",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Quiz"
-                ],
-                "summary": "Get quiz results",
-                "responses": {
-                    "200": {
-                        "description": "score",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "integer"
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/quiz/start": {
+        "/quiz/answer": {
             "post": {
-                "description": "Initialize a new quiz session",
-                "tags": [
-                    "Quiz"
-                ],
-                "summary": "Start the quiz",
-                "responses": {
-                    "200": {
-                        "description": "message",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/quiz/stats": {
-            "get": {
-                "description": "Retrieve user performance statistics",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Stats"
-                ],
-                "summary": "Get user statistics",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/quiz/submit": {
-            "post": {
-                "description": "Submit an answer to a question",
+                "description": "Validates and submits the user's answer to the current question",
                 "consumes": [
                     "application/json"
                 ],
@@ -205,7 +134,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "message",
+                        "description": "Answer feedback",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -216,10 +145,151 @@ const docTemplate = `{
                     "400": {
                         "description": "Invalid input",
                         "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/quiz/next": {
+            "get": {
+                "description": "Provides the next question for the ongoing quiz session",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Quiz"
+                ],
+                "summary": "Get the next quiz question",
+                "responses": {
+                    "200": {
+                        "description": "Next question",
+                        "schema": {
+                            "$ref": "#/definitions/models.Question"
+                        }
+                    },
+                    "410": {
+                        "description": "Quiz complete",
+                        "schema": {
                             "type": "object",
                             "additionalProperties": {
                                 "type": "string"
                             }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/quiz/results": {
+            "get": {
+                "description": "Fetches the quiz results for the logged-in user",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Quiz"
+                ],
+                "summary": "Get quiz results",
+                "responses": {
+                    "200": {
+                        "description": "Quiz score",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "integer"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/quiz/start": {
+            "post": {
+                "description": "Initiates a quiz session for the logged-in user",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Quiz"
+                ],
+                "summary": "Start a quiz",
+                "responses": {
+                    "200": {
+                        "description": "Quiz started and next endpoint",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Invalid session",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/quiz/stats": {
+            "get": {
+                "description": "Provides the statistics of the user, including their quiz performance",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Quiz"
+                ],
+                "summary": "Get user stats",
+                "responses": {
+                    "200": {
+                        "description": "User statistics",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Invalid session",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "No stats available",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "string"
                         }
                     }
                 }
@@ -319,11 +389,17 @@ const docTemplate = `{
                 "password": {
                     "type": "string"
                 },
+                "percentage": {
+                    "type": "number"
+                },
                 "progress": {
                     "type": "array",
                     "items": {
                         "type": "integer"
                     }
+                },
+                "quizTaken": {
+                    "type": "integer"
                 },
                 "score": {
                     "type": "integer"

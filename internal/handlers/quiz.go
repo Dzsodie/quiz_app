@@ -20,6 +20,14 @@ func NewQuizHandler(quizService services.IQuizService) *QuizHandler {
 	return &QuizHandler{QuizService: quizService}
 }
 
+// GetQuestions retrieves all available quiz questions
+// @Summary Get all quiz questions
+// @Description Fetches all quiz questions available in the system
+// @Tags Quiz
+// @Produce json
+// @Success 200 {array} models.Question "List of questions"
+// @Failure 500 {string} string "Internal server error"
+// @Router /questions [get]
 func (h *QuizHandler) GetQuestions(w http.ResponseWriter, r *http.Request) {
 	logger := utils.GetLogger().Sugar()
 	w.Header().Set("Content-Type", "application/json")
@@ -35,6 +43,15 @@ func (h *QuizHandler) GetQuestions(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// StartQuiz starts a new quiz session for the user
+// @Summary Start a quiz
+// @Description Initiates a quiz session for the logged-in user
+// @Tags Quiz
+// @Produce json
+// @Success 200 {object} map[string]string "Quiz started and next endpoint"
+// @Failure 401 {string} string "Invalid session"
+// @Failure 500 {string} string "Internal server error"
+// @Router /quiz/start [post]
 func (h *QuizHandler) StartQuiz(w http.ResponseWriter, r *http.Request) {
 	logger := utils.GetLogger().Sugar()
 	session, err := utils.SessionStore.Get(r, "quiz-session")
@@ -65,6 +82,15 @@ func (h *QuizHandler) StartQuiz(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// NextQuestion retrieves the next question for the user
+// @Summary Get the next quiz question
+// @Description Provides the next question for the ongoing quiz session
+// @Tags Quiz
+// @Produce json
+// @Success 200 {object} models.Question "Next question"
+// @Failure 410 {object} map[string]string "Quiz complete"
+// @Failure 500 {string} string "Internal server error"
+// @Router /quiz/next [get]
 func (h *QuizHandler) NextQuestion(w http.ResponseWriter, r *http.Request) {
 	logger := utils.GetLogger().Sugar()
 	session, _ := utils.SessionStore.Get(r, "quiz-session")
@@ -91,6 +117,17 @@ func (h *QuizHandler) NextQuestion(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// SubmitAnswer submits an answer for the current question
+// @Summary Submit an answer
+// @Description Validates and submits the user's answer to the current question
+// @Tags Quiz
+// @Accept json
+// @Produce json
+// @Param payload body models.AnswerPayload true "Answer payload"
+// @Success 200 {object} map[string]string "Answer feedback"
+// @Failure 400 {string} string "Invalid input"
+// @Failure 500 {string} string "Internal server error"
+// @Router /quiz/answer [post]
 func (h *QuizHandler) SubmitAnswer(w http.ResponseWriter, r *http.Request) {
 	logger := utils.GetLogger().Sugar()
 	var payload models.AnswerPayload
@@ -136,6 +173,14 @@ func (h *QuizHandler) SubmitAnswer(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// GetResults retrieves the quiz results for the user
+// @Summary Get quiz results
+// @Description Fetches the quiz results for the logged-in user
+// @Tags Quiz
+// @Produce json
+// @Success 200 {object} map[string]int "Quiz score"
+// @Failure 500 {string} string "Internal server error"
+// @Router /quiz/results [get]
 func (h *QuizHandler) GetResults(w http.ResponseWriter, r *http.Request) {
 	logger := utils.GetLogger().Sugar()
 	session, _ := utils.SessionStore.Get(r, "quiz-session")
@@ -153,6 +198,16 @@ func (h *QuizHandler) GetResults(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// GetStats retrieves the statistics for the user
+// @Summary Get user stats
+// @Description Provides the statistics of the user, including their quiz performance
+// @Tags Quiz
+// @Produce json
+// @Success 200 {object} map[string]interface{} "User statistics"
+// @Failure 401 {string} string "Invalid session"
+// @Failure 404 {string} string "No stats available"
+// @Failure 500 {string} string "Internal server error"
+// @Router /quiz/stats [get]
 func (h *QuizHandler) GetStats(w http.ResponseWriter, r *http.Request) {
 	logger := utils.GetLogger().Sugar()
 	session, err := utils.SessionStore.Get(r, "quiz-session")

@@ -28,14 +28,14 @@ func (db *MemoryDB) AddUser(user User) error {
 	return nil
 }
 
-func (db *MemoryDB) GetUser(username string) (User, error) {
+func (db *MemoryDB) GetUser(userID string) (User, error) {
 	if db == nil || db.users == nil {
 		return User{}, errors.New("database not initialized")
 	}
 	db.mu.RLock()
 	defer db.mu.RUnlock()
 
-	user, exists := db.users[username]
+	user, exists := db.users[userID]
 	if !exists {
 		return User{}, ErrUserNotFound
 	}

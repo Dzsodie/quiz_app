@@ -9,7 +9,7 @@ type Question models.Question
 
 type QuizDatabase interface {
 	AddUser(user User) error
-	GetUser(username string) (User, error)
+	GetUser(userID string) (User, error)
 	GetAllUsers() []User
 
 	GetQuestion(id string) (Question, error)
