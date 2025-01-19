@@ -19,59 +19,41 @@ var (
 )
 
 type AuthService struct {
-	store *sessions.CookieStore
-	DB    *database.MemoryDB
+	DB *database.MemoryDB
 }
 
 func NewAuthService(db *database.MemoryDB) *AuthService {
 	return &AuthService{DB: db}
 }
 
-func (a *AuthService) GetSession() (*sessions.Session, error) {
-
-	session, err := a.store.Get(nil, "session-name")
-	if err != nil {
-		return nil, errors.New("failed to get session")
-	}
-	return session, nil
-}
-
 func (s *AuthService) RegisterUser(username, password string) error {
 	logger := utils.GetLogger().Sugar()
 
-	// Validate username
 	if err := utils.ValidateUsername(username); err != nil {
 		logger.Warn("User registration failed: invalid username", zap.String("username", username), zap.Error(err))
 		return fmt.Errorf("invalid username: %w", err)
 	}
 
-	// Validate password
 	if err := utils.ValidatePassword(password, "Password must contain at least one uppercase letter"); err != nil {
 		logger.Warn("User registration failed: invalid password", zap.String("username", username), zap.Error(err))
 		return fmt.Errorf("invalid password: %w", err)
 	}
 
-	// Lock the user map to ensure thread safety
 	authMu.Lock()
 	defer authMu.Unlock()
 
-	// Check if the user already exists
 	if _, exists := users[username]; exists {
 		logger.Warn("User registration failed: user already exists", zap.String("username", username))
 		return errors.New("user already exists")
 	}
 
-	// Hash the password
 	hashedPassword, err := utils.HashPassword(password)
 	if err != nil {
 		logger.Error("User registration failed: error hashing password", zap.String("username", username), zap.Error(err))
 		return fmt.Errorf("error hashing password: %w", err)
 	}
 
-	// Generate a unique UserID
-	userID := uuid.NewString() // Use UUID for unique, non-sequential IDs
-
-	// Create and store the new user
+	userID := uuid.NewString()
 	users[username] = models.User{
 		UserID:   userID,
 		Username: username,
@@ -105,11 +87,23 @@ func (s *AuthService) AuthenticateUser(username, password string) error {
 }
 
 func (s *AuthService) GetUserID(username string) (string, error) {
+	authMu.Lock()
+	defer authMu.Unlock()
 
-	userID := users[username].UserID
+	user, exists := users[username]
+	if !exists {
+		return "", errors.New("user not found")
+	}
+	return user.UserID, nil
+}
 
-	return userID, nil
+func (a *AuthService) GetSession() (*sessions.Session, error) {
 
+	session, err := utils.SessionStore.Get(nil, "session-name")
+	if err != nil {
+		return nil, errors.New("failed to get session")
+	}
+	return session, nil
 }
 
 var _ IAuthService = &AuthService{}

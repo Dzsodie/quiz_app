@@ -50,7 +50,16 @@ func (h *QuizHandler) GetQuestions(w http.ResponseWriter, r *http.Request) {
 // @Router /quiz/start [post]
 func (h *QuizHandler) StartQuiz(w http.ResponseWriter, r *http.Request) {
 	logger := utils.GetLogger().Sugar()
-	session, _ := SessionStore.Get(r, "quiz-session")
+	session, err := utils.SessionStore.Get(r, "quiz-session")
+	if err != nil {
+		logger.Warn("Failed to retrieve session", zap.Error(err))
+		http.Error(w, "Invalid session", http.StatusUnauthorized)
+		return
+	}
+
+	// Log session data
+	logger.Debug("Session data", zap.Any("session_values", session.Values))
+
 	username, ok := session.Values["username"].(string)
 	if !ok || username == "" {
 		logger.Warn("No username found in session")
@@ -80,7 +89,7 @@ func (h *QuizHandler) StartQuiz(w http.ResponseWriter, r *http.Request) {
 // @Router /quiz/next [get]
 func (h *QuizHandler) NextQuestion(w http.ResponseWriter, r *http.Request) {
 	logger := utils.GetLogger().Sugar()
-	session, _ := SessionStore.Get(r, "quiz-session")
+	session, _ := utils.SessionStore.Get(r, "quiz-session")
 	username, _ := session.Values["username"].(string)
 
 	question, err := h.QuizService.GetNextQuestion(username)
@@ -122,7 +131,7 @@ func (h *QuizHandler) SubmitAnswer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	session, _ := SessionStore.Get(r, "quiz-session")
+	session, _ := utils.SessionStore.Get(r, "quiz-session")
 	username, _ := session.Values["username"].(string)
 
 	allQuestions, err := h.QuizService.GetQuestions()
@@ -171,7 +180,7 @@ func (h *QuizHandler) SubmitAnswer(w http.ResponseWriter, r *http.Request) {
 // @Router /quiz/results [get]
 func (h *QuizHandler) GetResults(w http.ResponseWriter, r *http.Request) {
 	logger := utils.GetLogger().Sugar()
-	session, _ := SessionStore.Get(r, "quiz-session")
+	session, _ := utils.SessionStore.Get(r, "quiz-session")
 	username, _ := session.Values["username"].(string)
 
 	score, err := h.QuizService.GetResults(username) // Delegate to the service
@@ -199,7 +208,7 @@ func (h *QuizHandler) GetResults(w http.ResponseWriter, r *http.Request) {
 // @Router /quiz/stats [get]
 func (h *QuizHandler) GetStats(w http.ResponseWriter, r *http.Request) {
 	logger := utils.GetLogger().Sugar()
-	session, _ := SessionStore.Get(r, "quiz-session")
+	session, _ := utils.SessionStore.Get(r, "quiz-session")
 	username, ok := session.Values["username"].(string)
 
 	if !ok || username == "" {

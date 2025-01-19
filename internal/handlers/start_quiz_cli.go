@@ -33,8 +33,10 @@ func (h *StartQuizCLIHandler) StartQuizCLI(APIBaseURL string, db *database.Memor
 			h.handleRegister(reader)
 		} else if choice == "2" {
 			sessionToken := h.handleLogin(reader)
+			logger.Debug("Session token_start", "session_token: ", sessionToken)
 			if sessionToken != "" {
 				h.startQuizLoop(reader, sessionToken)
+				logger.Debug("Session token>>", "session_token: ", sessionToken)
 				break
 			}
 		} else {
@@ -73,6 +75,7 @@ func (h *StartQuizCLIHandler) handleLogin(reader *bufio.Reader) string {
 	password := readInput(reader)
 
 	sessionToken, err := h.Service.LoginUser(username, password)
+	logger.Debug("Session token_login", "session_token: ", sessionToken)
 	if err != nil {
 		fmt.Printf("Login failed: %v\n", err)
 		logger.Error("Login failed", "error", err, "username", username, "password", password)
@@ -80,13 +83,15 @@ func (h *StartQuizCLIHandler) handleLogin(reader *bufio.Reader) string {
 	}
 
 	fmt.Println("Login successful!")
-	logger.Info("User logged in successfully", "username", username, "session_token", sessionToken)
+	logger.Info("User logged in successfully! ", "username: ", username, "session_token: ", sessionToken)
 	return sessionToken
 }
 
 func (h *StartQuizCLIHandler) startQuizLoop(reader *bufio.Reader, sessionToken string) {
+	logger := utils.GetLogger().Sugar()
 	for {
 		err := h.Service.StartQuiz(sessionToken)
+		logger.Debug("Session token_startloop_h", "session_token: ", sessionToken)
 		if err != nil {
 			fmt.Println("Failed to start quiz. Try again.")
 			return
@@ -95,6 +100,7 @@ func (h *StartQuizCLIHandler) startQuizLoop(reader *bufio.Reader, sessionToken s
 		finished := false
 		for !finished {
 			question, isFinished, err := h.Service.GetNextQuestion(sessionToken)
+			logger.Debug("Session token_getnextquestion_h", "session_token: ", sessionToken)
 			if err != nil {
 				fmt.Println("Error fetching question. Try again.")
 				return

@@ -6,8 +6,6 @@ import (
 	"sync"
 
 	"github.com/Dzsodie/quiz_app/internal/utils"
-
-	"github.com/gorilla/sessions"
 )
 
 type HealthStatus struct {
@@ -17,16 +15,14 @@ type HealthStatus struct {
 }
 
 type HealthCheck struct {
-	SessionStore *sessions.CookieStore
-	Mutex        *sync.Mutex
-	InMemoryDB   map[string]string
+	Mutex      *sync.Mutex
+	InMemoryDB map[string]string
 }
 
-func NewHealthCheck(sessionStore *sessions.CookieStore, inMemoryDB map[string]string) *HealthCheck {
+func NewHealthCheck(inMemoryDB map[string]string) *HealthCheck {
 	return &HealthCheck{
-		SessionStore: sessionStore,
-		Mutex:        &sync.Mutex{},
-		InMemoryDB:   inMemoryDB,
+		Mutex:      &sync.Mutex{},
+		InMemoryDB: inMemoryDB,
 	}
 }
 
@@ -55,7 +51,8 @@ func (hc *HealthCheck) checkInMemoryDB() string {
 }
 
 func (hc *HealthCheck) checkSessionStore() string {
-	if hc.SessionStore != nil {
+	// Use the global SessionStore from utils
+	if utils.SessionStore != nil {
 		return "OK"
 	}
 	return "Not Configured"

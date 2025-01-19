@@ -7,11 +7,8 @@ import (
 	"github.com/Dzsodie/quiz_app/internal/models"
 	"github.com/Dzsodie/quiz_app/internal/services"
 	"github.com/Dzsodie/quiz_app/internal/utils"
-	"github.com/gorilla/sessions"
 	"go.uber.org/zap"
 )
-
-var SessionStore = sessions.NewCookieStore([]byte("your-secret-key"))
 
 type AuthHandler struct {
 	AuthService services.IAuthService
@@ -83,38 +80,33 @@ func (h *AuthHandler) LoginUser(w http.ResponseWriter, r *http.Request) {
 	logger := utils.GetLogger().Sugar()
 	var user models.User
 
-	// Parse and validate input
 	if err := json.NewDecoder(r.Body).Decode(&user); err != nil || user.Username == "" || user.Password == "" {
 		logger.Warn("Invalid input for login", zap.Error(err))
 		http.Error(w, `{"message":"Invalid input"}`, http.StatusBadRequest)
 		return
 	}
 
-	// Authenticate user
 	if err := h.AuthService.AuthenticateUser(user.Username, user.Password); err != nil {
-		if err.Error() == "invalid username or password" {
-			logger.Warn("Invalid username or password", zap.String("username", user.Username))
-			http.Error(w, `{"message":"invalid username or password"}`, http.StatusUnauthorized)
-		} else {
-			logger.Error("Internal server error during login", zap.Error(err))
-			http.Error(w, `{"message":"Internal server error"}`, http.StatusInternalServerError)
-		}
+		logger.Warn("Authentication failed", zap.String("username", user.Username), zap.Error(err))
+		http.Error(w, `{"message":"Invalid username or password"}`, http.StatusUnauthorized)
 		return
 	}
 
-	// Generate a session token
-	sessionToken, err := utils.GenerateSessionToken() // You must implement this utility
+	sessionToken, err := utils.GenerateSessionToken()
 	if err != nil {
 		logger.Warn("Failed to generate session token", zap.Error(err))
 		http.Error(w, `{"message":"Internal server error"}`, http.StatusInternalServerError)
 		return
 	}
-	session, err := SessionStore.Get(r, "quiz-session")
+
+	session, err := utils.SessionStore.Get(r, "quiz-session")
 	if err != nil {
 		logger.Warn("Failed to retrieve session", zap.Error(err))
 		http.Error(w, `{"message":"Internal server error"}`, http.StatusInternalServerError)
 		return
 	}
+
+	// Save session data
 	session.Values["username"] = user.Username
 	session.Values["session_token"] = sessionToken
 	if err := session.Save(r, w); err != nil {
@@ -123,12 +115,16 @@ func (h *AuthHandler) LoginUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Respond with session token
-	logger.Info("User logged in successfully", zap.String("username", user.Username), zap.String("session_token", sessionToken))
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(map[string]string{
+	// Log session and cookies for debugging
+	logger.Debug("Session saved successfully", zap.Any("session", session.Values))
+
+	response := map[string]string{
 		"message":       "Login successful",
 		"session_token": sessionToken,
-	})
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		logger.Error("Failed to send response", zap.Error(err))
+	}
 }

@@ -6,8 +6,13 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/http/cookiejar"
+	"net/url"
+
+	"go.uber.org/zap"
 
 	"github.com/Dzsodie/quiz_app/internal/database"
+	"github.com/Dzsodie/quiz_app/internal/utils"
 )
 
 type Question struct {
@@ -23,6 +28,10 @@ type StartQuizCLIService struct {
 }
 
 func NewStartQuizCLIService(apiBaseURL string, client *http.Client, db *database.MemoryDB) *StartQuizCLIService {
+	if client.Jar == nil {
+		cookieJar, _ := cookiejar.New(nil)
+		client.Jar = cookieJar
+	}
 	return &StartQuizCLIService{ApiBaseURL: apiBaseURL, HttpClient: &http.Client{}, DB: db}
 }
 
@@ -60,6 +69,8 @@ func (s *StartQuizCLIService) RegisterUser(username, password string) (string, e
 }
 
 func (s *StartQuizCLIService) LoginUser(username, password string) (string, error) {
+	logger := utils.GetLogger().Sugar()
+
 	payload := map[string]string{"username": username, "password": password}
 	body, _ := json.Marshal(payload)
 
@@ -80,7 +91,7 @@ func (s *StartQuizCLIService) LoginUser(username, password string) (string, erro
 		if !ok {
 			return "", fmt.Errorf("response does not contain session_token")
 		}
-
+		logger.Debug("Session token_login_s", "session_token: ", sessionToken)
 		return sessionToken, nil
 	}
 
@@ -90,18 +101,45 @@ func (s *StartQuizCLIService) LoginUser(username, password string) (string, erro
 }
 
 func (s *StartQuizCLIService) StartQuiz(sessionToken string) error {
-	req, _ := http.NewRequest(http.MethodPost, s.ApiBaseURL+"/quiz/start", nil)
-	req.AddCookie(&http.Cookie{Name: "quiz-session", Value: sessionToken})
-	resp, err := s.HttpClient.Do(req)
-	if err != nil || resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("failed to start quiz")
+	logger := utils.GetLogger().Sugar()
+
+	// Ensure HttpClient uses a CookieJar
+	if s.HttpClient.Jar == nil {
+		cookieJar, _ := cookiejar.New(nil)
+		s.HttpClient.Jar = cookieJar
 	}
+
+	// Explicitly set the cookie in the jar
+	cookie := &http.Cookie{
+		Name:  "quiz-session",
+		Value: sessionToken,
+		Path:  "/",
+	}
+	u, _ := url.Parse(s.ApiBaseURL)
+	s.HttpClient.Jar.SetCookies(u, []*http.Cookie{cookie})
+
+	// Debug cookies before making the request
+	cookies := s.HttpClient.Jar.Cookies(u)
+	logger.Debug("Client cookies before request", zap.Any("cookies", cookies))
+
+	req, _ := http.NewRequest(http.MethodPost, s.ApiBaseURL+"/quiz/start", nil)
+	resp, err := s.HttpClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("failed to start quiz: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("failed to start quiz: %s", string(body))
+	}
+
 	return nil
 }
 
 func (s *StartQuizCLIService) GetNextQuestion(sessionToken string) (*Question, bool, error) {
 	req, _ := http.NewRequest(http.MethodGet, s.ApiBaseURL+"/quiz/next", nil)
-	req.AddCookie(&http.Cookie{Name: "quiz-session", Value: sessionToken})
+	//req.AddCookie(&http.Cookie{Name: "quiz-session", Value: sessionToken})
 	resp, err := s.HttpClient.Do(req)
 	if err != nil {
 		return nil, false, fmt.Errorf("failed to fetch next question")
@@ -124,7 +162,7 @@ func (s *StartQuizCLIService) SubmitAnswer(sessionToken string, questionID, answ
 	payload := map[string]int{"QuestionIndex": questionID, "Answer": answer}
 	body, _ := json.Marshal(payload)
 	req, _ := http.NewRequest(http.MethodPost, s.ApiBaseURL+"/quiz/submit", bytes.NewBuffer(body))
-	req.AddCookie(&http.Cookie{Name: "quiz-session", Value: sessionToken})
+	//req.AddCookie(&http.Cookie{Name: "quiz-session", Value: sessionToken})
 	resp, err := s.HttpClient.Do(req)
 	if err != nil {
 		return "", fmt.Errorf("failed to submit answer")
@@ -143,7 +181,7 @@ func (s *StartQuizCLIService) SubmitAnswer(sessionToken string, questionID, answ
 
 func (s *StartQuizCLIService) FetchResults(sessionToken string) (int, error) {
 	req, _ := http.NewRequest(http.MethodGet, s.ApiBaseURL+"/quiz/results", nil)
-	req.AddCookie(&http.Cookie{Name: "quiz-session", Value: sessionToken})
+	//req.AddCookie(&http.Cookie{Name: "quiz-session", Value: sessionToken})
 	resp, err := s.HttpClient.Do(req)
 	if err != nil {
 		return 0, fmt.Errorf("failed to fetch results")
@@ -160,7 +198,7 @@ func (s *StartQuizCLIService) FetchResults(sessionToken string) (int, error) {
 
 func (s *StartQuizCLIService) FetchStats(sessionToken string) (map[string]string, error) {
 	req, _ := http.NewRequest(http.MethodGet, s.ApiBaseURL+"/quiz/stats", nil)
-	req.AddCookie(&http.Cookie{Name: "quiz-session", Value: sessionToken})
+	//req.AddCookie(&http.Cookie{Name: "quiz-session", Value: sessionToken})
 	resp, err := s.HttpClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch stats")
@@ -171,21 +209,4 @@ func (s *StartQuizCLIService) FetchStats(sessionToken string) (map[string]string
 	body, _ := io.ReadAll(resp.Body)
 	_ = json.Unmarshal(body, &stats)
 	return stats, nil
-}
-
-func extractSessionToken(resp *http.Response) (string, error) {
-	var result map[string]string
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return "", err
-	}
-	err = json.Unmarshal(body, &result)
-	if err != nil {
-		return "", err
-	}
-	token, ok := result["session_token"]
-	if !ok {
-		return "", fmt.Errorf("session token not found")
-	}
-	return token, nil
 }

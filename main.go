@@ -15,7 +15,6 @@ import (
 	"github.com/Dzsodie/quiz_app/internal/services"
 	"github.com/Dzsodie/quiz_app/internal/utils"
 	"github.com/gorilla/mux"
-	"github.com/gorilla/sessions"
 	"go.uber.org/zap"
 
 	_ "github.com/Dzsodie/quiz_app/docs"
@@ -64,6 +63,7 @@ func newQuizApp(db *database.MemoryDB) *QuizApp {
 }
 
 func main() {
+	utils.InitializeSessionStore()
 	// Initialize the in-memory database
 	memoryDB := database.NewMemoryDB()
 	// Populate the database with some test data
@@ -72,11 +72,13 @@ func main() {
 	memoryDB.AddUser(database.User{Username: "testuser3", Score: 15})
 
 	app := newQuizApp(memoryDB)
+
 	app.Run()
 }
 
 // setupRESTAPIServer configures and starts the REST API server
 func setupRESTAPIServer(cfg config.Config, sugar *zap.SugaredLogger, suppressLogs bool, db *database.MemoryDB) {
+
 	// Services and handlers setup
 	quizService := &services.QuizService{DB: db}
 	authService := &services.AuthService{DB: db}
@@ -93,9 +95,6 @@ func setupRESTAPIServer(cfg config.Config, sugar *zap.SugaredLogger, suppressLog
 	authHandler := handlers.NewAuthHandler(authService)
 
 	r := mux.NewRouter()
-	handlers.SessionStore = sessions.NewCookieStore([]byte(cfg.SessionSecret))
-	middleware.SetSessionStore(handlers.SessionStore)
-
 	r.HandleFunc("/register", authHandler.RegisterUser).Methods("POST")
 	r.HandleFunc("/login", authHandler.LoginUser).Methods("POST")
 	r.HandleFunc("/questions", quizHandler.GetQuestions).Methods("GET")
@@ -111,7 +110,7 @@ func setupRESTAPIServer(cfg config.Config, sugar *zap.SugaredLogger, suppressLog
 
 	// Health check
 	inMemoryDB := make(map[string]string)
-	healthChecker := health.NewHealthCheck(handlers.SessionStore, inMemoryDB)
+	healthChecker := health.NewHealthCheck(inMemoryDB)
 	r.HandleFunc("/health", healthChecker.HealthCheckHandler).Methods("GET")
 
 	// Start server in a separate goroutine

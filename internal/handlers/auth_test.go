@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"github.com/Dzsodie/quiz_app/internal/models"
-	"github.com/gorilla/sessions"
+	"github.com/Dzsodie/quiz_app/internal/utils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
@@ -97,10 +97,11 @@ func TestRegisterUserHandler(t *testing.T) {
 }
 
 func TestLoginUserHandler(t *testing.T) {
+	// Initialize SessionStore
+	utils.InitializeSessionStore()
+
 	mockService := new(MockAuthService)
 	authHandler := NewAuthHandler(mockService)
-
-	SessionStore = sessions.NewCookieStore([]byte("test-secret"))
 
 	tests := []struct {
 		name           string
@@ -108,7 +109,7 @@ func TestLoginUserHandler(t *testing.T) {
 		mockReturnErr  error
 		expectedStatus int
 		expectedBody   map[string]interface{}
-		validateToken  bool // Whether to validate the presence of session_token
+		validateToken  bool
 	}{
 		{
 			name:           "Valid login",
@@ -131,7 +132,7 @@ func TestLoginUserHandler(t *testing.T) {
 			input:          models.User{Username: "testuser", Password: "wrongpassword"},
 			mockReturnErr:  errors.New("invalid username or password"),
 			expectedStatus: http.StatusUnauthorized,
-			expectedBody:   map[string]interface{}{"message": "invalid username or password"},
+			expectedBody:   map[string]interface{}{"message": "Invalid username or password"},
 			validateToken:  false,
 		},
 	}

@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/Dzsodie/quiz_app/internal/models"
+	"github.com/Dzsodie/quiz_app/internal/utils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
@@ -181,7 +182,7 @@ func TestGetResults(t *testing.T) {
 
 func withMockSession(req *http.Request, username string) *http.Request {
 	rr := httptest.NewRecorder()
-	session, _ := SessionStore.Get(req, "quiz-session")
+	session, _ := utils.SessionStore.Get(req, "quiz-session")
 	session.Values["username"] = username
 	_ = session.Save(req, rr)
 	return req
