@@ -62,7 +62,7 @@ func (app *QuizApp) Run() {
 	sugar.Infof("Application started in %s mode", cfg.Environment)
 
 	setupRESTAPIServer(cfg, sugar, app.DB)
-	cmd.Execute()
+
 }
 
 func newQuizApp(db *database.MemoryDB) *QuizApp {
@@ -78,6 +78,7 @@ func main() {
 
 	app := newQuizApp(memoryDB)
 	app.Run()
+	cmd.Execute()
 }
 
 func initializeMockUsers(memoryDB *database.MemoryDB) {
