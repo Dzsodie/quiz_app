@@ -17,8 +17,10 @@ A Go-based quiz application that supports user registration, login, and quiz fun
 - User registration and authentication.
 - CSV-based question loading.
 - Quiz functionality with score tracking and statistics.
-- Cobra CLI for UI.
-- Gorilla Toolkit for session handling.
+- Data persistence with in-Memory database with abstarction layer.
+- Cobra CLI for user interaction.
+- Gorilla/mux for URL router and dispatcher.
+- Gorilla/sessions for managing session data across HTTP requests using cookies.
 - Swagger for API testing and documentation.
 - Postman collection for API testing.
 - Testify for unit tests.
@@ -66,7 +68,6 @@ A Go-based quiz application that supports user registration, login, and quiz fun
 
 ## Usage of CLI commands outside game mode
 
-- quiz : Initiate the quiz application.
 - start : Start the quiz.
 - score : View user score and stats.
 - exit : Quit the quiz app.
@@ -97,6 +98,14 @@ A Go-based quiz application that supports user registration, login, and quiz fun
     ```
 - View results at `/quiz/results`. The same username and password should be added to the basic authentication.
 - Get statistics at `/quiz/stats`. The same username and password should be added to the basic authentication.
+- Check app health at `/health`. No authentication needed. Response should be similar to the following.
+    ```bash
+    {
+    "in_memory_db": "OK",
+    "sessions": "OK",
+    "mutex": "Unlocked"
+    }
+    ```
 
 ## API Documentation
 

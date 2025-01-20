@@ -170,11 +170,12 @@ func (h *QuizHandler) SubmitAnswer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	message := "Wrong answer"
+	message := ""
 	if correct {
 		message = "Correct answer"
 		logger.Info("Correct answer submitted", zap.String("username", username), zap.Int("questionIndex", payload.QuestionIndex))
 	} else {
+		message = "Wrong answer"
 		logger.Info("Wrong answer submitted", zap.String("username", username), zap.Int("questionIndex", payload.QuestionIndex))
 	}
 

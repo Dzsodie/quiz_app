@@ -1,6 +1,3 @@
-/*
-Copyright © 2025 Zsuzsa Makara <dzsodie@gmail.com>
-*/
 package cmd
 
 import (
@@ -10,18 +7,20 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strconv"
 
 	"github.com/spf13/cobra"
 )
 
 var cliMode bool
+var sessionCookie string
 
 var rootCmd = &cobra.Command{
 	Use:   "quiz_app",
 	Short: "A CLI app for quiz questions and answers",
 	Long: `quiz_app is a small CLI application built in Go that
-contains quiz questions and answers, it lets the user choose
-one answer and then evaluates the answer while sharing stats.`,
+contains quiz questions and answers. It lets the user choose
+one answer and evaluates the answer while sharing stats.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		if cliMode {
 			runCLI()
@@ -91,7 +90,20 @@ func startQuizCLI() {
 }
 
 func viewStatsCLI() {
-	resp, err := http.Get("http://localhost:8080/quiz/stats")
+	if sessionCookie == "" {
+		fmt.Println("You must log in before viewing stats.")
+		return
+	}
+
+	client := &http.Client{}
+	req, err := http.NewRequest("GET", "http://localhost:8080/quiz/stats", nil)
+	if err != nil {
+		fmt.Printf("Error creating stats request: %v\n", err)
+		return
+	}
+	req.Header.Set("Cookie", sessionCookie)
+
+	resp, err := client.Do(req)
 	if err != nil {
 		fmt.Printf("Error fetching stats: %v\n", err)
 		return
@@ -103,8 +115,17 @@ func viewStatsCLI() {
 		return
 	}
 
-	fmt.Println("Your current stats:")
-	fmt.Println(resp.Body)
+	var statsResponse map[string]interface{}
+	if err := json.NewDecoder(resp.Body).Decode(&statsResponse); err != nil {
+		fmt.Printf("Error decoding stats response: %v\n", err)
+		return
+	}
+
+	if message, ok := statsResponse["message"].(string); ok {
+		fmt.Println(message)
+	} else {
+		fmt.Println("Failed to retrieve stats message.")
+	}
 }
 
 func getUserCredentials() (string, string) {
@@ -143,18 +164,52 @@ func loginUser(username, password string) bool {
 	}
 	jsonData, _ := json.Marshal(data)
 
-	resp, err := http.Post("http://localhost:8080/login", "application/json", bytes.NewBuffer(jsonData))
+	client := &http.Client{}
+	req, err := http.NewRequest("POST", "http://localhost:8080/login", bytes.NewBuffer(jsonData))
+	if err != nil {
+		fmt.Printf("Error creating login request: %v\n", err)
+		return false
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := client.Do(req)
 	if err != nil || resp.StatusCode != http.StatusOK {
 		fmt.Println("Login failed.")
 		return false
 	}
+	defer resp.Body.Close()
+
+	for _, cookie := range resp.Cookies() {
+		if cookie.Name == "quiz-session" {
+			sessionCookie = fmt.Sprintf("%s=%s", cookie.Name, cookie.Value)
+			break
+		}
+	}
+
+	if sessionCookie == "" {
+		fmt.Println("Failed to retrieve session cookie.")
+		return false
+	}
+
 	fmt.Println("Login successful.")
 	return true
 }
 
 func quizLoop() {
+	if sessionCookie == "" {
+		fmt.Println("You must log in before starting the quiz.")
+		return
+	}
+
+	client := &http.Client{}
 	for {
-		resp, err := http.Get("http://localhost:8080/quiz/next")
+		req, err := http.NewRequest("GET", "http://localhost:8080/quiz/next", nil)
+		if err != nil {
+			fmt.Printf("Error creating next question request: %v\n", err)
+			return
+		}
+		req.Header.Set("Cookie", sessionCookie)
+		resp, err := http.DefaultClient.Do(req)
 		if err != nil {
 			fmt.Printf("Error retrieving next question: %v\n", err)
 			return
@@ -170,7 +225,10 @@ func quizLoop() {
 		}
 
 		var question map[string]interface{}
-		json.NewDecoder(resp.Body).Decode(&question)
+		if err := json.NewDecoder(resp.Body).Decode(&question); err != nil {
+			fmt.Printf("Error decoding question: %v\n", err)
+			return
+		}
 
 		fmt.Printf("\nQuestion: %s\n", question["question"])
 		options := question["options"].([]interface{})
@@ -183,20 +241,39 @@ func quizLoop() {
 		scanner.Scan()
 		answer := scanner.Text()
 
+		answerInt, err := strconv.Atoi(answer)
+		if err != nil || answerInt < 0 || answerInt > len(options)+1 {
+			fmt.Println("Invalid answer. Please enter a valid option number.")
+			continue
+		}
+
+		questionID := int(question["question_id"].(float64))
 		answerData := map[string]interface{}{
-			"question_index": question["question_id"],
-			"answer":         answer,
+			"question_index": questionID - 1,
+			"answer":         answerInt,
 		}
 		jsonData, _ := json.Marshal(answerData)
 
-		resp, err = http.Post("http://localhost:8080/quiz/submit", "application/json", bytes.NewBuffer(jsonData))
+		req, err = http.NewRequest("POST", "http://localhost:8080/quiz/submit", bytes.NewBuffer(jsonData))
+		if err != nil {
+			fmt.Printf("Error creating submit answer request: %v\n", err)
+			return
+		}
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Cookie", sessionCookie)
+
+		resp, err = client.Do(req)
 		if err != nil || resp.StatusCode != http.StatusOK {
 			fmt.Println("Error submitting answer.")
 			return
 		}
 
 		var response map[string]string
-		json.NewDecoder(resp.Body).Decode(&response)
+		err = json.NewDecoder(resp.Body).Decode(&response)
+		if err != nil {
+			fmt.Printf("Error decoding answer response: %v\n", err)
+			return
+		}
 		fmt.Println(response["message"])
 	}
 }
