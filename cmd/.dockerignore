@@ -1,0 +1,8 @@
+# Ignore directories
+bin/
+pkg/
+vendor/
+
+# Ignore temporary files
+*.log
+*.tmp
