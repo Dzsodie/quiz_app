@@ -66,7 +66,44 @@ A Go-based quiz application that supports user registration, login, and quiz fun
     go run main.go --cli
     ```
 
-## Usage of CLI commands outside game mode
+## Installation and Testing Locally with Docker
+
+### Prerequisites
+1. Before you begin, ensure you have the following installed:
+    ![Docker])https://www.docker.com/products/docker-desktop/)
+    Make sure to choose the version for your operating system from the Download dropdown menu on the site.
+
+### Steps to Run the Application Locally
+2. Clone this repository to your local machine:
+    ```bash
+    git clone https://github.com/Dzsodie/quiz_app.git
+    cd quiz_app
+    ```
+3. Build the Docker image. Use the provided Dockerfile to build the image:
+    ```bash
+    docker build -t quiz_app .
+    ```
+4. Run the Docker container after the image is built, run the application in a container:
+    ```bash
+    docker run --rm -it quiz_app
+    ```
+5. Test the application interact with the CLI quiz application as it runs in the container.
+
+### Additional Notes
+6. Rebuilding the image: If you make changes to the source code, rebuild the Docker image to include the updates:
+    ```bash
+    docker build -t quiz_app .
+    ```
+7. Stopping the application: since the container is run interactively (-it), you can stop it by pressing Ctrl+C.
+
+8. Debugging: To check logs or troubleshoot, you can run the container in detached mode and inspect it later:
+    ```bash
+    docker run -d --name quiz_app_container quiz_app
+    docker logs quiz_app_container
+    docker stop quiz_app_container
+    ```
+
+## Usage of CLI commands 
 
 - start : Start the quiz.
 - score : View user score and stats.
@@ -74,8 +111,9 @@ A Go-based quiz application that supports user registration, login, and quiz fun
 
 ## Usage through REST API
 
-- Import the Postman collection from the postman/quiz_app.postman_collection.json.
-- Register a user via the `/register` endpoint.
+1. Download ![Postman](https://www.postman.com/downloads/)
+2. Import the Postman collection from the `quiz_app/postman_collection.json`
+3. Register a user via the `/register` endpoint.
     Add `Content-Type : application/json` to the headers if it is missing.
     
     Example username and password payload.
@@ -85,10 +123,10 @@ A Go-based quiz application that supports user registration, login, and quiz fun
     "password": "Valid@123"
     }
     ```
-- Log in using the `/login` endpoint. Add `Content-Type : application/json` to the headers if it is missing. The same username and password should be added to the basic authentication.
-- Start a quiz with `/quiz/start`. The same username and password should be added to the basic authentication.
-- Get next question on `/quiz/next`. The same username and password should be added to the basic authentication.
-- Submit answers to questions using `/quiz/submit`.  Add `Content-Type : application/json` to the headers if it is missing. The same username and password should be added to the basic authentication.
+4. Log in using the `/login` endpoint. Add `Content-Type : application/json` to the headers if it is missing. The same username and password should be added to the basic authentication.
+5. Start a quiz with `/quiz/start`. The same username and password should be added to the basic authentication.
+6. Get next question on `/quiz/next`. The same username and password should be added to the basic authentication.
+7. Submit answers to questions using `/quiz/submit`.  Add `Content-Type : application/json` to the headers if it is missing. The same username and password should be added to the basic authentication.
     Example payload for answer.
     ```bash
     {
@@ -96,9 +134,10 @@ A Go-based quiz application that supports user registration, login, and quiz fun
      "answer": 2
     }
     ```
-- View results at `/quiz/results`. The same username and password should be added to the basic authentication.
-- Get statistics at `/quiz/stats`. The same username and password should be added to the basic authentication.
-- Check app health at `/health`. No authentication needed. Response should be similar to the following.
+8. Repeat steps 6 and 7 until you get the status Code `409 Gone` from the `/quiz/next` endpoint.
+9. View results at `/quiz/results`. The same username and password should be added to the basic authentication.
+10. Get statistics at `/quiz/stats`. The same username and password should be added to the basic authentication.
+11. Check app health at `/health`. No authentication needed. Response should be similar to the following.
     ```bash
     {
     "in_memory_db": "OK",
@@ -106,10 +145,11 @@ A Go-based quiz application that supports user registration, login, and quiz fun
     "mutex": "Unlocked"
     }
     ```
++1. Cheat code: get the list of all the questions, answer options and correct answers loaded from the `/questions` endpoint.
 
 ## API Documentation
 
-Swagger documentation is available at: http://localhost:8080/swagger/index.html
+Swagger documentation is available at: http://localhost:8080/swagger/index.html after the application started successfully.
 
 ## Testing 
 
@@ -130,7 +170,19 @@ Swagger documentation is available at: http://localhost:8080/swagger/index.html
 ## Logging
 
 Zap logging is used in the quiz app. 
-    In the `utils/logger.go` the log format is configured and the logs are collected to the `logs/app.log` file.
+- In the `utils/logger.go` the log format is configured.
+- Log structure is defined in connection to GoAccess aggregation.
+`[timestamp] [level] [logger] [caller] [message] [stacktrace/context]`
+
+Here is a few lines of example log.
+```bash
+20/Jan/2025:02:56:40 +0100	DEBUG	middleware/auth_middleware.go:38	Session token validation{session_token_in_cookie 15 0 67aa6263b8f910dfeae5249bf14bf8b42cd4f5db4cf5ac2713694ac184e03014 <nil>} {stored_username 15 0 test1 <nil>} {exists 4 1  <nil>}
+
+20/Jan/2025:02:56:40 +0100	INFO	services/quiz_service.go:40	Questions retrieved successfully{count 11 10  <nil>}
+
+20/Jan/2025:02:56:40 +0100	WARN	utils/validator.go:19	Validation failed: question index out of range{questionIndex 11 10  <nil>}
+```
+- The logs are collected to the `logs/app.log` file. It makes sense to clear them from time to time as log rotation or clearing the logs when opening the app is not implemented yet. 
 
 ## Monitoring
 
@@ -166,10 +218,12 @@ Zap logging is used in the quiz app.
 
 ## Future enhancement
 
-- Enhance the game play with randomized questions with keeping track of already chosen questions.
-- Adding database connection for persistency.
-- Containerize with docker for portability.
-- Deploying to cloud for easier distribution, monitoring and low cost 7/24 99.9% availability.
+- Add logger rotation.
+- Add encryption for data at rest and transition for sensitive info and personal data.
+- Enhance the game play with randomized questions while keeping track of already chosen questions.
+- Add database connection for persistency.
+- Create an aesthetically pleasing frontend with UX/UI enhanced.
+- Deploy to cloud or Heroku for easier distribution, monitoring and low cost 7/24 99.9% availability.
 
 ## License
 
